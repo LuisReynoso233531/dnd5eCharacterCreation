@@ -5,13 +5,14 @@ import 'package:provider/provider.dart';
 import 'utils/app_theme.dart'; 
 import 'data/repositories/character_repository.dart';
 import 'view_models/theme_view_model.dart';
-import 'view_models/character_view_model.dart';
-import 'view_models/spells_view_model.dart';
-import 'view_models/bestiary_view_model.dart';
-import 'view_models/tools_view_model.dart';
+import 'view_models/character/character_view_model.dart';
+import 'view_models/spell/spells_view_model.dart';
+import 'view_models/bestiary/bestiary_view_model.dart';
+import 'view_models/tools/tools_view_model.dart';
 import 'views/main_screen.dart';
-
-void main() {
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+void main() async{
+  await dotenv.load(fileName: ".env");
   runApp(
     MultiProvider(
       providers: [

@@ -25,3 +25,19 @@ class Character with _$Character {
   factory Character.fromJson(Map<String, dynamic> json) => 
       _$CharacterFromJson(json);
 }
+
+extension CharacterCalculations on Character {
+  // El modificador de habilidad es: (Puntuación - 10) / 2 redondeado hacia abajo
+  int getModifier(int score) => (score - 10) ~/ 2;
+
+  // Cálculos rápidos para la interfaz
+  int get strMod => getModifier(strength);
+  int get dexMod => getModifier(dexterity);
+  int get conMod => getModifier(constitution);
+  int get intMod => getModifier(intelligence);
+  int get wisMod => getModifier(wisdom);
+  int get chaMod => getModifier(charisma);
+
+  // Proficiency Bonus basado en nivel (Simplificado para nivel 1-4)
+  int get proficiencyBonus => 2; 
+}

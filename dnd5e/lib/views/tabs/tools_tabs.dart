@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../view_models/tools_view_model.dart';
+import '../../view_models/tools/tools_view_model.dart';
 
 class ToolsTab extends StatelessWidget {
   const ToolsTab({super.key});

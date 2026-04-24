@@ -93,9 +93,9 @@ class _MainScreenState extends State<MainScreen> {
         selectedItemColor: const Color(0xFFE50914),
         unselectedItemColor: Colors.grey,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.star_border), label: "Characters"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Characters"),
           BottomNavigationBarItem(icon: Icon(Icons.auto_fix_high), label: "Spells"),
-          BottomNavigationBarItem(icon: Icon(Icons.groups_outlined), label: "Bestiary"),
+          BottomNavigationBarItem(icon: Icon(Icons.pets_outlined), label: "Bestiary"),
           BottomNavigationBarItem(icon: Icon(Icons.casino_outlined), label: "Tools"),
         ],
       ),

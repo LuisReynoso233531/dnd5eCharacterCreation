@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../view_models/character_view_model.dart';
+import '../../view_models/character/character_view_model.dart';
 
 class CreateCharacterView extends StatefulWidget {
   const CreateCharacterView({super.key});

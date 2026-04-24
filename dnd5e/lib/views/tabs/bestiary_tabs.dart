@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../view_models/bestiary_view_model.dart';
+import '../../view_models/bestiary/bestiary_view_model.dart';
 
 class BestiaryTab extends StatelessWidget {
   const BestiaryTab({super.key});

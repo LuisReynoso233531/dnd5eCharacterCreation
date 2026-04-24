@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../view_models/spells_view_model.dart';
+import '../../view_models/spell/spells_view_model.dart';
 
 class SpellsTab extends StatelessWidget {
   const SpellsTab({super.key});
