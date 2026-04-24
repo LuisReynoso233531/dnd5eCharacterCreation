@@ -11,7 +11,6 @@ class CharacterTab extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // FILA DE BÚSQUEDA Y CREACIÓN
             Row(
               children: [
                 ElevatedButton.icon(

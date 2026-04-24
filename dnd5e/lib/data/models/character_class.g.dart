@@ -10,7 +10,8 @@ _$CharacterClassImpl _$$CharacterClassImplFromJson(Map<String, dynamic> json) =>
     _$CharacterClassImpl(
       name: json['name'] as String,
       slug: json['slug'] as String,
-      hpDie: (json['hp_die'] as num).toInt(),
+      hit_dice: json['hit_dice'] as String,
+      prof_saving_throws: json['prof_saving_throws'] as String,
     );
 
 Map<String, dynamic> _$$CharacterClassImplToJson(
@@ -18,5 +19,6 @@ Map<String, dynamic> _$$CharacterClassImplToJson(
 ) => <String, dynamic>{
   'name': instance.name,
   'slug': instance.slug,
-  'hp_die': instance.hpDie,
+  'hit_dice': instance.hit_dice,
+  'prof_saving_throws': instance.prof_saving_throws,
 };

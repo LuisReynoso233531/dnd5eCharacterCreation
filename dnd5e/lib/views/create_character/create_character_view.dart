@@ -32,7 +32,7 @@ class _CreateCharacterViewState extends State<CreateCharacterView> {
                 final charClass = vm.classes[index];
                 return ListTile(
                   title: Text(charClass.name),
-                  subtitle: Text("Dado de vida: d${charClass.hpDie}"),
+                  subtitle: Text("Dado de vida: d${charClass.hit_dice}"),
                   selected: vm.selectedClass == charClass,
                   onTap: () => vm.selectClass(charClass),
                 );

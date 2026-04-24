@@ -22,9 +22,10 @@ CharacterClass _$CharacterClassFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$CharacterClass {
   String get name => throw _privateConstructorUsedError;
-  String get slug => throw _privateConstructorUsedError;
-  @JsonKey(name: 'hp_die')
-  int get hpDie => throw _privateConstructorUsedError;
+  String get slug =>
+      throw _privateConstructorUsedError; // Usamos hit_dice porque así lo estás llamando en tu pantalla de selección
+  String get hit_dice => throw _privateConstructorUsedError;
+  String get prof_saving_throws => throw _privateConstructorUsedError;
 
   /// Serializes this CharacterClass to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -43,7 +44,12 @@ abstract class $CharacterClassCopyWith<$Res> {
     $Res Function(CharacterClass) then,
   ) = _$CharacterClassCopyWithImpl<$Res, CharacterClass>;
   @useResult
-  $Res call({String name, String slug, @JsonKey(name: 'hp_die') int hpDie});
+  $Res call({
+    String name,
+    String slug,
+    String hit_dice,
+    String prof_saving_throws,
+  });
 }
 
 /// @nodoc
@@ -60,7 +66,12 @@ class _$CharacterClassCopyWithImpl<$Res, $Val extends CharacterClass>
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? name = null, Object? slug = null, Object? hpDie = null}) {
+  $Res call({
+    Object? name = null,
+    Object? slug = null,
+    Object? hit_dice = null,
+    Object? prof_saving_throws = null,
+  }) {
     return _then(
       _value.copyWith(
             name: null == name
@@ -71,10 +82,14 @@ class _$CharacterClassCopyWithImpl<$Res, $Val extends CharacterClass>
                 ? _value.slug
                 : slug // ignore: cast_nullable_to_non_nullable
                       as String,
-            hpDie: null == hpDie
-                ? _value.hpDie
-                : hpDie // ignore: cast_nullable_to_non_nullable
-                      as int,
+            hit_dice: null == hit_dice
+                ? _value.hit_dice
+                : hit_dice // ignore: cast_nullable_to_non_nullable
+                      as String,
+            prof_saving_throws: null == prof_saving_throws
+                ? _value.prof_saving_throws
+                : prof_saving_throws // ignore: cast_nullable_to_non_nullable
+                      as String,
           )
           as $Val,
     );
@@ -90,7 +105,12 @@ abstract class _$$CharacterClassImplCopyWith<$Res>
   ) = __$$CharacterClassImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String name, String slug, @JsonKey(name: 'hp_die') int hpDie});
+  $Res call({
+    String name,
+    String slug,
+    String hit_dice,
+    String prof_saving_throws,
+  });
 }
 
 /// @nodoc
@@ -106,7 +126,12 @@ class __$$CharacterClassImplCopyWithImpl<$Res>
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? name = null, Object? slug = null, Object? hpDie = null}) {
+  $Res call({
+    Object? name = null,
+    Object? slug = null,
+    Object? hit_dice = null,
+    Object? prof_saving_throws = null,
+  }) {
     return _then(
       _$CharacterClassImpl(
         name: null == name
@@ -117,10 +142,14 @@ class __$$CharacterClassImplCopyWithImpl<$Res>
             ? _value.slug
             : slug // ignore: cast_nullable_to_non_nullable
                   as String,
-        hpDie: null == hpDie
-            ? _value.hpDie
-            : hpDie // ignore: cast_nullable_to_non_nullable
-                  as int,
+        hit_dice: null == hit_dice
+            ? _value.hit_dice
+            : hit_dice // ignore: cast_nullable_to_non_nullable
+                  as String,
+        prof_saving_throws: null == prof_saving_throws
+            ? _value.prof_saving_throws
+            : prof_saving_throws // ignore: cast_nullable_to_non_nullable
+                  as String,
       ),
     );
   }
@@ -132,7 +161,8 @@ class _$CharacterClassImpl implements _CharacterClass {
   const _$CharacterClassImpl({
     required this.name,
     required this.slug,
-    @JsonKey(name: 'hp_die') required this.hpDie,
+    required this.hit_dice,
+    required this.prof_saving_throws,
   });
 
   factory _$CharacterClassImpl.fromJson(Map<String, dynamic> json) =>
@@ -142,13 +172,15 @@ class _$CharacterClassImpl implements _CharacterClass {
   final String name;
   @override
   final String slug;
+  // Usamos hit_dice porque así lo estás llamando en tu pantalla de selección
   @override
-  @JsonKey(name: 'hp_die')
-  final int hpDie;
+  final String hit_dice;
+  @override
+  final String prof_saving_throws;
 
   @override
   String toString() {
-    return 'CharacterClass(name: $name, slug: $slug, hpDie: $hpDie)';
+    return 'CharacterClass(name: $name, slug: $slug, hit_dice: $hit_dice, prof_saving_throws: $prof_saving_throws)';
   }
 
   @override
@@ -158,12 +190,16 @@ class _$CharacterClassImpl implements _CharacterClass {
             other is _$CharacterClassImpl &&
             (identical(other.name, name) || other.name == name) &&
             (identical(other.slug, slug) || other.slug == slug) &&
-            (identical(other.hpDie, hpDie) || other.hpDie == hpDie));
+            (identical(other.hit_dice, hit_dice) ||
+                other.hit_dice == hit_dice) &&
+            (identical(other.prof_saving_throws, prof_saving_throws) ||
+                other.prof_saving_throws == prof_saving_throws));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, name, slug, hpDie);
+  int get hashCode =>
+      Object.hash(runtimeType, name, slug, hit_dice, prof_saving_throws);
 
   /// Create a copy of CharacterClass
   /// with the given fields replaced by the non-null parameter values.
@@ -186,7 +222,8 @@ abstract class _CharacterClass implements CharacterClass {
   const factory _CharacterClass({
     required final String name,
     required final String slug,
-    @JsonKey(name: 'hp_die') required final int hpDie,
+    required final String hit_dice,
+    required final String prof_saving_throws,
   }) = _$CharacterClassImpl;
 
   factory _CharacterClass.fromJson(Map<String, dynamic> json) =
@@ -195,10 +232,11 @@ abstract class _CharacterClass implements CharacterClass {
   @override
   String get name;
   @override
-  String get slug;
+  String get slug; // Usamos hit_dice porque así lo estás llamando en tu pantalla de selección
   @override
-  @JsonKey(name: 'hp_die')
-  int get hpDie;
+  String get hit_dice;
+  @override
+  String get prof_saving_throws;
 
   /// Create a copy of CharacterClass
   /// with the given fields replaced by the non-null parameter values.

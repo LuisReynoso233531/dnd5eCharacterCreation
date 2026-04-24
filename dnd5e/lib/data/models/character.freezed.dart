@@ -24,7 +24,8 @@ mixin _$Character {
   String? get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   String get race => throw _privateConstructorUsedError;
-  CharacterClass get characterClass => throw _privateConstructorUsedError;
+  CharacterClass get characterClass =>
+      throw _privateConstructorUsedError; // Ya contiene hit_dice y profs
   int get level => throw _privateConstructorUsedError;
   int get strength => throw _privateConstructorUsedError;
   int get dexterity => throw _privateConstructorUsedError;
@@ -300,6 +301,7 @@ class _$CharacterImpl implements _Character {
   final String race;
   @override
   final CharacterClass characterClass;
+  // Ya contiene hit_dice y profs
   @override
   final int level;
   @override
@@ -414,7 +416,7 @@ abstract class _Character implements Character {
   @override
   String get race;
   @override
-  CharacterClass get characterClass;
+  CharacterClass get characterClass; // Ya contiene hit_dice y profs
   @override
   int get level;
   @override
