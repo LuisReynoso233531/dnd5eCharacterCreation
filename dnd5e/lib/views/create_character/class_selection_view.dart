@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../view_models/character/character_view_model.dart';
 import '../../data/models/character_class.dart';
+import '../../views/create_character/character_stats_view.dart';
 
 class ClassSelectionView extends StatefulWidget {
   const ClassSelectionView({super.key});
@@ -31,20 +32,41 @@ class _ClassSelectionViewState extends State<ClassSelectionView> {
       ),
       body: Column(
         children: [
-          // Banner de resumen de Raza
           if (vm.selectedRace != null)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              color: Colors.grey[100],
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
+              ),
               child: Row(
                 children: [
-                  const Icon(Icons.person, color: Color(0xFFE50914), size: 20),
-                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.shield_moon_outlined,
+                    color: Color(0xFFE50914),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      "Race: ${vm.selectedRace!['name']} | Speed: ${vm.speed} ft. | ${vm.racialBonuses.entries.map((e) => "${e.key} +${e.value}").join(', ')}",
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Race: ${vm.selectedRace!['name']}",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          "Speed: ${vm.speed} ft. | Bonuses: ${vm.racialBonuses.isEmpty ? 'None' : vm.racialBonuses.entries.map((e) => "${e.key} +${e.value}").join(', ')}",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -52,9 +74,12 @@ class _ClassSelectionViewState extends State<ClassSelectionView> {
             ),
 
           // Lista de Clases
+          // Lista de Clases
           Expanded(
             child: vm.isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFFE50914)))
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFFE50914)),
+                  )
                 : ListView.builder(
                     padding: const EdgeInsets.all(8),
                     itemCount: vm.classes.length,
@@ -62,13 +87,18 @@ class _ClassSelectionViewState extends State<ClassSelectionView> {
                       final charClass = vm.classes[index];
                       return Card(
                         elevation: 2,
-                        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        margin: const EdgeInsets.symmetric(
+                          vertical: 6,
+                          horizontal: 4,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(12),
                           onTap: () {
                             vm.selectClass(charClass);
-                            // Navegar a la pantalla de Stats (Siguiente paso)
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const CharacterDetailsView()));
                           },
                           child: Padding(
                             padding: const EdgeInsets.all(16),
@@ -82,18 +112,26 @@ class _ClassSelectionViewState extends State<ClassSelectionView> {
                                     color: Colors.red[50],
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(Icons.water_drop, color: Colors.red, size: 24),
+                                  child: const Icon(
+                                    Icons.water_drop,
+                                    color: Colors.red,
+                                    size: 24,
+                                  ),
                                 ),
                                 const SizedBox(width: 16),
-                                
+
                                 // Información de la Clase
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         charClass.name,
-                                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                       const SizedBox(height: 4),
                                       // Usamos Wrap en lugar de Row para que si el texto es muy largo, baje a la siguiente línea
@@ -101,14 +139,26 @@ class _ClassSelectionViewState extends State<ClassSelectionView> {
                                         spacing: 12,
                                         runSpacing: 4,
                                         children: [
-                                          _buildClassInfo(Icons.favorite, "Hit Die: 1d${charClass.hit_dice}", Colors.red),
-                                          _buildClassInfo(Icons.auto_fix_high, "Saves: ${charClass.prof_saving_throws}", Colors.blue),
+                                          _buildClassInfo(
+                                            Icons.favorite,
+                                            "Hit Die: ${charClass.hit_dice}",
+                                            Colors.red,
+                                          ),
+                                          _buildClassInfo(
+                                            Icons.auto_fix_high,
+                                            "Saves: ${charClass.prof_saving_throws}",
+                                            Colors.blue,
+                                          ),
                                         ],
                                       ),
                                     ],
                                   ),
                                 ),
-                                const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                                const Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: Colors.grey,
+                                ),
                               ],
                             ),
                           ),
@@ -121,9 +171,9 @@ class _ClassSelectionViewState extends State<ClassSelectionView> {
       ),
     );
   }
+}
 
-  // Widget auxiliar para los iconos y texto debajo del nombre
-  Widget _buildClassInfo(IconData icon, String text, Color color) {
+Widget _buildClassInfo(IconData icon, String text, Color color) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -136,4 +186,3 @@ class _ClassSelectionViewState extends State<ClassSelectionView> {
       ],
     );
   }
-}

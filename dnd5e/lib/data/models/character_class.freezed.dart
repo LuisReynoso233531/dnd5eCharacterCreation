@@ -26,6 +26,11 @@ mixin _$CharacterClass {
       throw _privateConstructorUsedError; // Usamos hit_dice porque así lo estás llamando en tu pantalla de selección
   String get hit_dice => throw _privateConstructorUsedError;
   String get prof_saving_throws => throw _privateConstructorUsedError;
+  String? get prof_skills => throw _privateConstructorUsedError;
+  String? get armor_proficiencies => throw _privateConstructorUsedError;
+  String? get weapon_proficiencies => throw _privateConstructorUsedError;
+  String? get tool_proficiencies => throw _privateConstructorUsedError;
+  String? get equipment => throw _privateConstructorUsedError;
 
   /// Serializes this CharacterClass to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -49,6 +54,11 @@ abstract class $CharacterClassCopyWith<$Res> {
     String slug,
     String hit_dice,
     String prof_saving_throws,
+    String? prof_skills,
+    String? armor_proficiencies,
+    String? weapon_proficiencies,
+    String? tool_proficiencies,
+    String? equipment,
   });
 }
 
@@ -71,6 +81,11 @@ class _$CharacterClassCopyWithImpl<$Res, $Val extends CharacterClass>
     Object? slug = null,
     Object? hit_dice = null,
     Object? prof_saving_throws = null,
+    Object? prof_skills = freezed,
+    Object? armor_proficiencies = freezed,
+    Object? weapon_proficiencies = freezed,
+    Object? tool_proficiencies = freezed,
+    Object? equipment = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -90,6 +105,26 @@ class _$CharacterClassCopyWithImpl<$Res, $Val extends CharacterClass>
                 ? _value.prof_saving_throws
                 : prof_saving_throws // ignore: cast_nullable_to_non_nullable
                       as String,
+            prof_skills: freezed == prof_skills
+                ? _value.prof_skills
+                : prof_skills // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            armor_proficiencies: freezed == armor_proficiencies
+                ? _value.armor_proficiencies
+                : armor_proficiencies // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            weapon_proficiencies: freezed == weapon_proficiencies
+                ? _value.weapon_proficiencies
+                : weapon_proficiencies // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            tool_proficiencies: freezed == tool_proficiencies
+                ? _value.tool_proficiencies
+                : tool_proficiencies // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            equipment: freezed == equipment
+                ? _value.equipment
+                : equipment // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -110,6 +145,11 @@ abstract class _$$CharacterClassImplCopyWith<$Res>
     String slug,
     String hit_dice,
     String prof_saving_throws,
+    String? prof_skills,
+    String? armor_proficiencies,
+    String? weapon_proficiencies,
+    String? tool_proficiencies,
+    String? equipment,
   });
 }
 
@@ -131,6 +171,11 @@ class __$$CharacterClassImplCopyWithImpl<$Res>
     Object? slug = null,
     Object? hit_dice = null,
     Object? prof_saving_throws = null,
+    Object? prof_skills = freezed,
+    Object? armor_proficiencies = freezed,
+    Object? weapon_proficiencies = freezed,
+    Object? tool_proficiencies = freezed,
+    Object? equipment = freezed,
   }) {
     return _then(
       _$CharacterClassImpl(
@@ -150,6 +195,26 @@ class __$$CharacterClassImplCopyWithImpl<$Res>
             ? _value.prof_saving_throws
             : prof_saving_throws // ignore: cast_nullable_to_non_nullable
                   as String,
+        prof_skills: freezed == prof_skills
+            ? _value.prof_skills
+            : prof_skills // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        armor_proficiencies: freezed == armor_proficiencies
+            ? _value.armor_proficiencies
+            : armor_proficiencies // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        weapon_proficiencies: freezed == weapon_proficiencies
+            ? _value.weapon_proficiencies
+            : weapon_proficiencies // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        tool_proficiencies: freezed == tool_proficiencies
+            ? _value.tool_proficiencies
+            : tool_proficiencies // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        equipment: freezed == equipment
+            ? _value.equipment
+            : equipment // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -163,6 +228,11 @@ class _$CharacterClassImpl implements _CharacterClass {
     required this.slug,
     required this.hit_dice,
     required this.prof_saving_throws,
+    required this.prof_skills,
+    required this.armor_proficiencies,
+    required this.weapon_proficiencies,
+    required this.tool_proficiencies,
+    required this.equipment,
   });
 
   factory _$CharacterClassImpl.fromJson(Map<String, dynamic> json) =>
@@ -177,10 +247,20 @@ class _$CharacterClassImpl implements _CharacterClass {
   final String hit_dice;
   @override
   final String prof_saving_throws;
+  @override
+  final String? prof_skills;
+  @override
+  final String? armor_proficiencies;
+  @override
+  final String? weapon_proficiencies;
+  @override
+  final String? tool_proficiencies;
+  @override
+  final String? equipment;
 
   @override
   String toString() {
-    return 'CharacterClass(name: $name, slug: $slug, hit_dice: $hit_dice, prof_saving_throws: $prof_saving_throws)';
+    return 'CharacterClass(name: $name, slug: $slug, hit_dice: $hit_dice, prof_saving_throws: $prof_saving_throws, prof_skills: $prof_skills, armor_proficiencies: $armor_proficiencies, weapon_proficiencies: $weapon_proficiencies, tool_proficiencies: $tool_proficiencies, equipment: $equipment)';
   }
 
   @override
@@ -193,13 +273,33 @@ class _$CharacterClassImpl implements _CharacterClass {
             (identical(other.hit_dice, hit_dice) ||
                 other.hit_dice == hit_dice) &&
             (identical(other.prof_saving_throws, prof_saving_throws) ||
-                other.prof_saving_throws == prof_saving_throws));
+                other.prof_saving_throws == prof_saving_throws) &&
+            (identical(other.prof_skills, prof_skills) ||
+                other.prof_skills == prof_skills) &&
+            (identical(other.armor_proficiencies, armor_proficiencies) ||
+                other.armor_proficiencies == armor_proficiencies) &&
+            (identical(other.weapon_proficiencies, weapon_proficiencies) ||
+                other.weapon_proficiencies == weapon_proficiencies) &&
+            (identical(other.tool_proficiencies, tool_proficiencies) ||
+                other.tool_proficiencies == tool_proficiencies) &&
+            (identical(other.equipment, equipment) ||
+                other.equipment == equipment));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, name, slug, hit_dice, prof_saving_throws);
+  int get hashCode => Object.hash(
+    runtimeType,
+    name,
+    slug,
+    hit_dice,
+    prof_saving_throws,
+    prof_skills,
+    armor_proficiencies,
+    weapon_proficiencies,
+    tool_proficiencies,
+    equipment,
+  );
 
   /// Create a copy of CharacterClass
   /// with the given fields replaced by the non-null parameter values.
@@ -224,6 +324,11 @@ abstract class _CharacterClass implements CharacterClass {
     required final String slug,
     required final String hit_dice,
     required final String prof_saving_throws,
+    required final String? prof_skills,
+    required final String? armor_proficiencies,
+    required final String? weapon_proficiencies,
+    required final String? tool_proficiencies,
+    required final String? equipment,
   }) = _$CharacterClassImpl;
 
   factory _CharacterClass.fromJson(Map<String, dynamic> json) =
@@ -237,6 +342,16 @@ abstract class _CharacterClass implements CharacterClass {
   String get hit_dice;
   @override
   String get prof_saving_throws;
+  @override
+  String? get prof_skills;
+  @override
+  String? get armor_proficiencies;
+  @override
+  String? get weapon_proficiencies;
+  @override
+  String? get tool_proficiencies;
+  @override
+  String? get equipment;
 
   /// Create a copy of CharacterClass
   /// with the given fields replaced by the non-null parameter values.

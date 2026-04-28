@@ -3,11 +3,13 @@ import '../models/character_class.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class CharacterRepository {
-  final Dio _dio = Dio(BaseOptions(
-    baseUrl: dotenv.get('API_BASE_URL'),
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
-  ));
+  final Dio _dio = Dio(
+    BaseOptions(
+      baseUrl: dotenv.get('API_BASE_URL'),
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
+    ),
+  );
 
   // Obtener la lista de clases (Fighter, Wizard, etc.)
   Future<List<CharacterClass>> getClasses() async {
@@ -27,6 +29,24 @@ class CharacterRepository {
       return List<Map<String, dynamic>>.from(response.data['results']);
     } on DioException catch (e) {
       throw Exception('Failed to load races: ${e.message}');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getBackgrounds() async {
+    try {
+      final response = await _dio.get('/backgrounds/');
+      return List<Map<String, dynamic>>.from(response.data['results']);
+    } on DioException catch (e) {
+      throw Exception('Failed to get classes from Open5e: ${e.message}');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getFeats() async {
+    try {
+      final response = await _dio.get('/feats/');
+      return List<Map<String, dynamic>>.from(response.data['results']);
+    } on DioException catch (e) {
+      throw Exception('Failed to get feats from Open5e: ${e.message}');
     }
   }
 }
