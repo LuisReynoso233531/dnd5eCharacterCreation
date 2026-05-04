@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../view_models/character/character_view_model.dart';
-import '../../data/models/character_class.dart';
 import '../../views/create_character/character_stats_view.dart';
 
 class ClassSelectionView extends StatefulWidget {
@@ -98,7 +97,7 @@ class _ClassSelectionViewState extends State<ClassSelectionView> {
                           borderRadius: BorderRadius.circular(12),
                           onTap: () {
                             vm.selectClass(charClass);
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const CharacterDetailsView()));
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const CharacterStatsView()));
                           },
                           child: Padding(
                             padding: const EdgeInsets.all(16),

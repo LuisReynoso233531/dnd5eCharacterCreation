@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../view_models/character/character_view_model.dart';
 import '../../views/create_character/background_selecter_view.dart';
-import 'class_selection_view.dart';
 
 class RaceSelectionView extends StatefulWidget {
   const RaceSelectionView({super.key});
@@ -17,6 +16,71 @@ class _RaceSelectionViewState extends State<RaceSelectionView> {
     super.initState();
     Future.microtask(
       () => context.read<CreateCharacterViewModel>().fetchRaces(),
+    );
+  }
+
+  // MODAL DE DETALLES (Se activa con Long Press)
+  void _showRaceDetails(BuildContext context, Map<String, dynamic> race) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(20),
+          children: [
+            Text(
+              race['name'],
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFE50914),
+              ),
+            ),
+            const SizedBox(height: 10),
+            _detailSection("Description", race['desc']),
+            _detailSection("Ability Score Increase", race['asi_desc']),
+            _detailSection("Age", race['age']),
+            _detailSection("Size", race['size']),
+            _detailSection("Speed", race['speed_desc']),
+            _detailSection("Languages", race['languages']),
+            if (race['vision'] != null)
+              _detailSection("Vision", race['vision']),
+            _detailSection("Traits", race['traits']),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _detailSection(String title, dynamic content) {
+    if (content == null || content.toString().isEmpty)
+      return const SizedBox.shrink();
+    String cleanContent = content.toString().replaceAll(RegExp(r'[\*#_]'), '');
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.blueGrey,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(cleanContent, style: const TextStyle(fontSize: 14, height: 1.4)),
+          const Divider(),
+        ],
+      ),
     );
   }
 
@@ -39,33 +103,13 @@ class _RaceSelectionViewState extends State<RaceSelectionView> {
               ),
             ),
 
-          if (vm.errorMessage != null)
-            Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 60,
-                      color: Colors.red,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(vm.errorMessage!, textAlign: TextAlign.center),
-                    ElevatedButton(
-                      onPressed: () => vm.fetchRaces(),
-                      child: const Text("Retry"),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
           if (!vm.isLoading && vm.races.isNotEmpty)
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.all(12),
                 itemCount: vm.races.length,
+
+                // ... dentro del ListView.builder en RaceSelectionView
                 itemBuilder: (context, index) {
                   final race = vm.races[index];
                   final List<dynamic> asiList = race['asi'] ?? [];
@@ -73,17 +117,44 @@ class _RaceSelectionViewState extends State<RaceSelectionView> {
                   return Card(
                     elevation: 2,
                     margin: const EdgeInsets.only(bottom: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       title: Text(
                         race['name'],
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Color(0xFFE50914),
+                          fontSize: 18,
                         ),
                       ),
-                      subtitle: Text(
-                        "Speed: ${race['speed']['walk']} ft.",
-                        style: const TextStyle(fontSize: 12),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 4),
+                          Text(
+                            "Speed: ${race['speed']['walk']} ft.",
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          // --- EL TEXTO DE AYUDA ---
+                          const Text(
+                            "Hold for info",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontStyle: FontStyle.italic,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
                       ),
                       trailing: Wrap(
                         direction: Axis.vertical,
@@ -92,8 +163,8 @@ class _RaceSelectionViewState extends State<RaceSelectionView> {
                         children: asiList.map((asi) {
                           return Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
+                              horizontal: 8,
+                              vertical: 4,
                             ),
                             decoration: BoxDecoration(
                               color: Colors.blueGrey.withOpacity(0.1),
@@ -109,6 +180,8 @@ class _RaceSelectionViewState extends State<RaceSelectionView> {
                           );
                         }).toList(),
                       ),
+
+                      // Toque normal: SELECCIONA Y AVANZA
                       onTap: () {
                         vm.setRace(race);
                         Navigator.push(
@@ -116,9 +189,12 @@ class _RaceSelectionViewState extends State<RaceSelectionView> {
                           MaterialPageRoute(
                             builder: (context) =>
                                 const BackgroundSelectionView(),
-                          ), // Ahora va a Backgrounds
+                          ),
                         );
                       },
+
+                      // Toque largo: MUESTRA DETALLES
+                      onLongPress: () => _showRaceDetails(context, race),
                     ),
                   );
                 },
