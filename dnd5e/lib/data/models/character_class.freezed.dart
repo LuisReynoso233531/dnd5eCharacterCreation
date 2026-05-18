@@ -30,6 +30,14 @@ mixin _$CharacterClass {
   String? get prof_weapons => throw _privateConstructorUsedError;
   String? get prof_tools => throw _privateConstructorUsedError;
   String? get equipment => throw _privateConstructorUsedError;
+  String? get desc => throw _privateConstructorUsedError;
+  String? get table => throw _privateConstructorUsedError;
+  String get hp_at_1st_level => throw _privateConstructorUsedError;
+  String get hp_at_higher_levels => throw _privateConstructorUsedError;
+  String get spellcasting_ability => throw _privateConstructorUsedError;
+  String get subtypes_name => throw _privateConstructorUsedError;
+  List<Map<String, dynamic>> get archetypes =>
+      throw _privateConstructorUsedError;
 
   /// Serializes this CharacterClass to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -58,6 +66,13 @@ abstract class $CharacterClassCopyWith<$Res> {
     String? prof_weapons,
     String? prof_tools,
     String? equipment,
+    String? desc,
+    String? table,
+    String hp_at_1st_level,
+    String hp_at_higher_levels,
+    String spellcasting_ability,
+    String subtypes_name,
+    List<Map<String, dynamic>> archetypes,
   });
 }
 
@@ -85,6 +100,13 @@ class _$CharacterClassCopyWithImpl<$Res, $Val extends CharacterClass>
     Object? prof_weapons = freezed,
     Object? prof_tools = freezed,
     Object? equipment = freezed,
+    Object? desc = freezed,
+    Object? table = freezed,
+    Object? hp_at_1st_level = null,
+    Object? hp_at_higher_levels = null,
+    Object? spellcasting_ability = null,
+    Object? subtypes_name = null,
+    Object? archetypes = null,
   }) {
     return _then(
       _value.copyWith(
@@ -124,6 +146,34 @@ class _$CharacterClassCopyWithImpl<$Res, $Val extends CharacterClass>
                 ? _value.equipment
                 : equipment // ignore: cast_nullable_to_non_nullable
                       as String?,
+            desc: freezed == desc
+                ? _value.desc
+                : desc // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            table: freezed == table
+                ? _value.table
+                : table // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            hp_at_1st_level: null == hp_at_1st_level
+                ? _value.hp_at_1st_level
+                : hp_at_1st_level // ignore: cast_nullable_to_non_nullable
+                      as String,
+            hp_at_higher_levels: null == hp_at_higher_levels
+                ? _value.hp_at_higher_levels
+                : hp_at_higher_levels // ignore: cast_nullable_to_non_nullable
+                      as String,
+            spellcasting_ability: null == spellcasting_ability
+                ? _value.spellcasting_ability
+                : spellcasting_ability // ignore: cast_nullable_to_non_nullable
+                      as String,
+            subtypes_name: null == subtypes_name
+                ? _value.subtypes_name
+                : subtypes_name // ignore: cast_nullable_to_non_nullable
+                      as String,
+            archetypes: null == archetypes
+                ? _value.archetypes
+                : archetypes // ignore: cast_nullable_to_non_nullable
+                      as List<Map<String, dynamic>>,
           )
           as $Val,
     );
@@ -149,6 +199,13 @@ abstract class _$$CharacterClassImplCopyWith<$Res>
     String? prof_weapons,
     String? prof_tools,
     String? equipment,
+    String? desc,
+    String? table,
+    String hp_at_1st_level,
+    String hp_at_higher_levels,
+    String spellcasting_ability,
+    String subtypes_name,
+    List<Map<String, dynamic>> archetypes,
   });
 }
 
@@ -175,6 +232,13 @@ class __$$CharacterClassImplCopyWithImpl<$Res>
     Object? prof_weapons = freezed,
     Object? prof_tools = freezed,
     Object? equipment = freezed,
+    Object? desc = freezed,
+    Object? table = freezed,
+    Object? hp_at_1st_level = null,
+    Object? hp_at_higher_levels = null,
+    Object? spellcasting_ability = null,
+    Object? subtypes_name = null,
+    Object? archetypes = null,
   }) {
     return _then(
       _$CharacterClassImpl(
@@ -214,6 +278,34 @@ class __$$CharacterClassImplCopyWithImpl<$Res>
             ? _value.equipment
             : equipment // ignore: cast_nullable_to_non_nullable
                   as String?,
+        desc: freezed == desc
+            ? _value.desc
+            : desc // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        table: freezed == table
+            ? _value.table
+            : table // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        hp_at_1st_level: null == hp_at_1st_level
+            ? _value.hp_at_1st_level
+            : hp_at_1st_level // ignore: cast_nullable_to_non_nullable
+                  as String,
+        hp_at_higher_levels: null == hp_at_higher_levels
+            ? _value.hp_at_higher_levels
+            : hp_at_higher_levels // ignore: cast_nullable_to_non_nullable
+                  as String,
+        spellcasting_ability: null == spellcasting_ability
+            ? _value.spellcasting_ability
+            : spellcasting_ability // ignore: cast_nullable_to_non_nullable
+                  as String,
+        subtypes_name: null == subtypes_name
+            ? _value.subtypes_name
+            : subtypes_name // ignore: cast_nullable_to_non_nullable
+                  as String,
+        archetypes: null == archetypes
+            ? _value._archetypes
+            : archetypes // ignore: cast_nullable_to_non_nullable
+                  as List<Map<String, dynamic>>,
       ),
     );
   }
@@ -232,7 +324,14 @@ class _$CharacterClassImpl implements _CharacterClass {
     required this.prof_weapons,
     required this.prof_tools,
     required this.equipment,
-  });
+    required this.desc,
+    required this.table,
+    this.hp_at_1st_level = '',
+    this.hp_at_higher_levels = '',
+    this.spellcasting_ability = '',
+    this.subtypes_name = '',
+    final List<Map<String, dynamic>> archetypes = const [],
+  }) : _archetypes = archetypes;
 
   factory _$CharacterClassImpl.fromJson(Map<String, dynamic> json) =>
       _$$CharacterClassImplFromJson(json);
@@ -255,10 +354,34 @@ class _$CharacterClassImpl implements _CharacterClass {
   final String? prof_tools;
   @override
   final String? equipment;
+  @override
+  final String? desc;
+  @override
+  final String? table;
+  @override
+  @JsonKey()
+  final String hp_at_1st_level;
+  @override
+  @JsonKey()
+  final String hp_at_higher_levels;
+  @override
+  @JsonKey()
+  final String spellcasting_ability;
+  @override
+  @JsonKey()
+  final String subtypes_name;
+  final List<Map<String, dynamic>> _archetypes;
+  @override
+  @JsonKey()
+  List<Map<String, dynamic>> get archetypes {
+    if (_archetypes is EqualUnmodifiableListView) return _archetypes;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_archetypes);
+  }
 
   @override
   String toString() {
-    return 'CharacterClass(name: $name, slug: $slug, hit_dice: $hit_dice, prof_saving_throws: $prof_saving_throws, prof_skills: $prof_skills, prof_armor: $prof_armor, prof_weapons: $prof_weapons, prof_tools: $prof_tools, equipment: $equipment)';
+    return 'CharacterClass(name: $name, slug: $slug, hit_dice: $hit_dice, prof_saving_throws: $prof_saving_throws, prof_skills: $prof_skills, prof_armor: $prof_armor, prof_weapons: $prof_weapons, prof_tools: $prof_tools, equipment: $equipment, desc: $desc, table: $table, hp_at_1st_level: $hp_at_1st_level, hp_at_higher_levels: $hp_at_higher_levels, spellcasting_ability: $spellcasting_ability, subtypes_name: $subtypes_name, archetypes: $archetypes)';
   }
 
   @override
@@ -281,7 +404,21 @@ class _$CharacterClassImpl implements _CharacterClass {
             (identical(other.prof_tools, prof_tools) ||
                 other.prof_tools == prof_tools) &&
             (identical(other.equipment, equipment) ||
-                other.equipment == equipment));
+                other.equipment == equipment) &&
+            (identical(other.desc, desc) || other.desc == desc) &&
+            (identical(other.table, table) || other.table == table) &&
+            (identical(other.hp_at_1st_level, hp_at_1st_level) ||
+                other.hp_at_1st_level == hp_at_1st_level) &&
+            (identical(other.hp_at_higher_levels, hp_at_higher_levels) ||
+                other.hp_at_higher_levels == hp_at_higher_levels) &&
+            (identical(other.spellcasting_ability, spellcasting_ability) ||
+                other.spellcasting_ability == spellcasting_ability) &&
+            (identical(other.subtypes_name, subtypes_name) ||
+                other.subtypes_name == subtypes_name) &&
+            const DeepCollectionEquality().equals(
+              other._archetypes,
+              _archetypes,
+            ));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -297,6 +434,13 @@ class _$CharacterClassImpl implements _CharacterClass {
     prof_weapons,
     prof_tools,
     equipment,
+    desc,
+    table,
+    hp_at_1st_level,
+    hp_at_higher_levels,
+    spellcasting_ability,
+    subtypes_name,
+    const DeepCollectionEquality().hash(_archetypes),
   );
 
   /// Create a copy of CharacterClass
@@ -327,6 +471,13 @@ abstract class _CharacterClass implements CharacterClass {
     required final String? prof_weapons,
     required final String? prof_tools,
     required final String? equipment,
+    required final String? desc,
+    required final String? table,
+    final String hp_at_1st_level,
+    final String hp_at_higher_levels,
+    final String spellcasting_ability,
+    final String subtypes_name,
+    final List<Map<String, dynamic>> archetypes,
   }) = _$CharacterClassImpl;
 
   factory _CharacterClass.fromJson(Map<String, dynamic> json) =
@@ -350,6 +501,20 @@ abstract class _CharacterClass implements CharacterClass {
   String? get prof_tools;
   @override
   String? get equipment;
+  @override
+  String? get desc;
+  @override
+  String? get table;
+  @override
+  String get hp_at_1st_level;
+  @override
+  String get hp_at_higher_levels;
+  @override
+  String get spellcasting_ability;
+  @override
+  String get subtypes_name;
+  @override
+  List<Map<String, dynamic>> get archetypes;
 
   /// Create a copy of CharacterClass
   /// with the given fields replaced by the non-null parameter values.

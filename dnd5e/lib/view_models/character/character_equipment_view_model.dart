@@ -7,6 +7,7 @@ class CharacterEquipmentViewModel extends ChangeNotifier {
   List<String> _backgroundEquipment = [];
   List<EquipmentPackage> _equipmentPackages = [];
   int _selectedPackageIndex = 0;
+  
 
   // ─── Getters ──────────────────────────────────────────────────────────────
   List<String> get fixedEquipment => _fixedEquipment;

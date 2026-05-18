@@ -17,6 +17,17 @@ _$CharacterClassImpl _$$CharacterClassImplFromJson(Map<String, dynamic> json) =>
       prof_weapons: json['prof_weapons'] as String?,
       prof_tools: json['prof_tools'] as String?,
       equipment: json['equipment'] as String?,
+      desc: json['desc'] as String?,
+      table: json['table'] as String?,
+      hp_at_1st_level: json['hp_at_1st_level'] as String? ?? '',
+      hp_at_higher_levels: json['hp_at_higher_levels'] as String? ?? '',
+      spellcasting_ability: json['spellcasting_ability'] as String? ?? '',
+      subtypes_name: json['subtypes_name'] as String? ?? '',
+      archetypes:
+          (json['archetypes'] as List<dynamic>?)
+              ?.map((e) => e as Map<String, dynamic>)
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$$CharacterClassImplToJson(
@@ -31,4 +42,11 @@ Map<String, dynamic> _$$CharacterClassImplToJson(
   'prof_weapons': instance.prof_weapons,
   'prof_tools': instance.prof_tools,
   'equipment': instance.equipment,
+  'desc': instance.desc,
+  'table': instance.table,
+  'hp_at_1st_level': instance.hp_at_1st_level,
+  'hp_at_higher_levels': instance.hp_at_higher_levels,
+  'spellcasting_ability': instance.spellcasting_ability,
+  'subtypes_name': instance.subtypes_name,
+  'archetypes': instance.archetypes,
 };

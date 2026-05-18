@@ -87,25 +87,32 @@ class CharacterLanguageViewModel extends ChangeNotifier {
         raw.contains('one of the following');
   }
 
-  bool get _racialHasLanguageChoiceInTraits {
-    final raw = (_selectedRace?['traits'] ?? '').toString().toLowerCase();
-    return raw.contains('one extra language') ||
-        raw.contains('one other language') ||
-        raw.contains('your choice of') ||
-        raw.contains('extra language') ||
-        raw.contains('a language associated with') ||
-        raw.contains('one of the following');
+  bool _checkTextForChoice(String text) {
+    final cleanText = text.toLowerCase();
+    return cleanText.contains('one extra language') ||
+           cleanText.contains('one other language') ||
+           cleanText.contains('extra language') || // Específicamente para High Elf
+           cleanText.contains('your choice of') ||
+           cleanText.contains('a language associated with') ||
+           cleanText.contains('any one language') ||
+           cleanText.contains('one of the following');
   }
 
-  int get racialLanguagesToChoose {
-    if (!racialHasLanguageChoice || !_racialHasLanguageChoiceInTraits) return 0;
-    final raw = (_selectedRace?['languages'] ?? '').toString().toLowerCase();
-    if (raw.contains('one extra') ||
-        raw.contains('one other') ||
-        raw.contains('one of the following') ||
-        raw.contains('associated with')) {
+
+
+int get racialLanguagesToChoose {
+    if (_selectedRace == null) return 0;
+
+    // 1. Buscamos en el campo 'languages'
+    final languagesText = (_selectedRace?['languages'] ?? '').toString();
+    // 2. Buscamos en el campo 'traits' (Aquí es donde High Elf tiene la info)
+    final traitsText = (_selectedRace?['traits'] ?? '').toString();
+
+    // Si CUALQUIERA de los dos campos tiene la instrucción, devolvemos 1
+    if (_checkTextForChoice(languagesText) || _checkTextForChoice(traitsText)) {
       return 1;
     }
+
     return 0;
   }
 

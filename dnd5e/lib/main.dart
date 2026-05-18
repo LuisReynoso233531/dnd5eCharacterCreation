@@ -11,21 +11,47 @@ import 'view_models/bestiary/bestiary_view_model.dart';
 import 'view_models/tools/tools_view_model.dart';
 import 'views/main_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import './view_models/character/character_skill_view_model.dart';
+import './view_models/character/character_equipment_view_model.dart';
+import './view_models/character/character_language_view_model.dart';
 void main() async{
   await dotenv.load(fileName: ".env");
   runApp(
-    MultiProvider(
+   MultiProvider(
       providers: [
-        // 1. Repositorio (Base de datos/API)
+        // 1. EL REPOSITORIO DEBE IR PRIMERO
         Provider(create: (_) => CharacterRepository()),
 
-        // 2. ViewModel del Tema (Modo Oscuro)
+        // 2. EL TEMA
         ChangeNotifierProvider(create: (_) => ThemeViewModel()),
 
-        // 3. ViewModels de las pantallas
-        ChangeNotifierProvider(
-          create: (context) => CreateCharacterViewModel(context.read<CharacterRepository>()),
+        // 3. LOS VIEWMODELS HIJOS (Independientes)
+        ChangeNotifierProvider(create: (_) => CharacterSkillViewModel()),
+        ChangeNotifierProvider(create: (_) => CharacterEquipmentViewModel()),
+        ChangeNotifierProvider(create: (_) => CharacterLanguageViewModel()),
+
+        // 4. EL VIEWMODEL PRINCIPAL (Depende de los 3 anteriores)
+        // NOTA: Aquí agregamos el < ... > que faltaba
+        ChangeNotifierProxyProvider3<
+            CharacterSkillViewModel,
+            CharacterEquipmentViewModel,
+            CharacterLanguageViewModel,
+            CreateCharacterViewModel>(
+          create: (ctx) => CreateCharacterViewModel(
+            ctx.read<CharacterRepository>(),
+            skillViewModel: ctx.read<CharacterSkillViewModel>(),
+            equipmentViewModel: ctx.read<CharacterEquipmentViewModel>(),
+            languageViewModel: ctx.read<CharacterLanguageViewModel>(),
+          ),
+          // El método update se asegura de que si los sub-viewmodels cambian, el principal se entere
+          update: (ctx, skillVM, equipVM, langVM, prev) {
+            // Aquí puedes sincronizar si es necesario, 
+            // pero si ya los pasaste por constructor, solo devolvemos el previo.
+            return prev!;
+          },
         ),
+        
+        // Otros ViewModels
         ChangeNotifierProvider(create: (_) => SpellsViewModel()),
         ChangeNotifierProvider(create: (_) => BestiaryViewModel()),
         ChangeNotifierProvider(create: (_) => ToolsViewModel()),
