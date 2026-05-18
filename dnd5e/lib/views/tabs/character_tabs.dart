@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../create_character/race_selector_view.dart'; // Crearemos esto ahora
+import '../create_character/race_selector_view.dart'; 
+import '../../utils/app_theme.dart';
 
 class CharacterTab extends StatelessWidget {
   const CharacterTab({super.key});
@@ -23,7 +24,7 @@ class CharacterTab extends StatelessWidget {
                   icon: const Icon(Icons.add, color: Colors.white),
                   label: const Text("Create", style: TextStyle(color: Colors.white)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE50914),
+                    backgroundColor: AppTheme.primaryRed,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                 ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../view_models/character/character_view_model.dart';
 import '../../views/create_character/background_selecter_view.dart';
+import '../../utils/app_theme.dart';
 
 class RaceSelectionView extends StatefulWidget {
   const RaceSelectionView({super.key});
@@ -41,7 +42,7 @@ class _RaceSelectionViewState extends State<RaceSelectionView> {
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFFE50914),
+                color: AppTheme.primaryRed,
               ),
             ),
             const SizedBox(height: 10),
@@ -91,7 +92,7 @@ class _RaceSelectionViewState extends State<RaceSelectionView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Select Race"),
-        backgroundColor: const Color(0xFFE50914),
+        backgroundColor: AppTheme.primaryRed,
         foregroundColor: Colors.white,
       ),
       body: Column(
@@ -99,7 +100,7 @@ class _RaceSelectionViewState extends State<RaceSelectionView> {
           if (vm.isLoading)
             const Expanded(
               child: Center(
-                child: CircularProgressIndicator(color: Color(0xFFE50914)),
+                child: CircularProgressIndicator(color: AppTheme.primaryRed),
               ),
             ),
 
@@ -129,7 +130,7 @@ class _RaceSelectionViewState extends State<RaceSelectionView> {
                         race['name'],
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFFE50914),
+                          color: AppTheme.primaryRed,
                           fontSize: 18,
                         ),
                       ),

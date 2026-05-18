@@ -1,6 +1,6 @@
 
   import 'package:flutter/material.dart';
-  
+  import '../../../utils/app_theme.dart';
   // FUNCIÓN PARA MOSTRAR EL MODAL DE INFORMACIÓN
   void showBackgroundDetails(BuildContext context, Map<String, dynamic> bg) {
     showModalBottomSheet(
@@ -30,7 +30,7 @@
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Text(bg['name'], style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFFE50914))),
+                  Text(bg['name'], style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.primaryRed)),
                   const Divider(),
                   
                   _buildModalSection("Description", bg['desc']),

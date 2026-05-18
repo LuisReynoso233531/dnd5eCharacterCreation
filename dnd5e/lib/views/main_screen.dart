@@ -5,6 +5,7 @@ import './tabs/bestiary_tabs.dart';
 import './tabs/character_tabs.dart';
 import './tabs/tools_tabs.dart';
 import './tabs/spells_tabs.dart';
+import '../utils/app_theme.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -47,7 +48,7 @@ class _MainScreenState extends State<MainScreen> {
         child: Column(
           children: [
             const DrawerHeader(
-              decoration: BoxDecoration(color: Color(0xFFE50914)),
+              decoration: BoxDecoration(color: AppTheme.primaryRed),
               child: Center(
                 child: Text(
                   'Settings',
@@ -90,7 +91,7 @@ class _MainScreenState extends State<MainScreen> {
         currentIndex: _selectedIndex,
         onTap: (index) => _pageController.jumpToPage(index),
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFFE50914),
+        selectedItemColor: AppTheme.primaryRed,
         unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Characters"),

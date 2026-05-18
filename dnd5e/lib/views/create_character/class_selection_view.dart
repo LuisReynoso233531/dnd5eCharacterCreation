@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../view_models/character/character_view_model.dart';
 import '../../views/create_character/character_stats_view.dart';
+import '../../utils/app_theme.dart';
 
 class ClassSelectionView extends StatefulWidget {
   const ClassSelectionView({super.key});
@@ -26,7 +27,7 @@ class _ClassSelectionViewState extends State<ClassSelectionView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Choose your class"),
-        backgroundColor: const Color(0xFFE50914),
+        backgroundColor: AppTheme.primaryRed,
         foregroundColor: Colors.white,
       ),
       body: Column(
@@ -43,7 +44,7 @@ class _ClassSelectionViewState extends State<ClassSelectionView> {
                 children: [
                   const Icon(
                     Icons.shield_moon_outlined,
-                    color: Color(0xFFE50914),
+                    color: AppTheme.primaryRed,
                     size: 20,
                   ),
                   const SizedBox(width: 10),
@@ -77,7 +78,9 @@ class _ClassSelectionViewState extends State<ClassSelectionView> {
           Expanded(
             child: vm.isLoading
                 ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFE50914)),
+                    child: CircularProgressIndicator(
+                      color: AppTheme.primaryRed,
+                    ),
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.all(8),
@@ -97,7 +100,13 @@ class _ClassSelectionViewState extends State<ClassSelectionView> {
                           borderRadius: BorderRadius.circular(12),
                           onTap: () {
                             vm.selectClass(charClass);
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const CharacterStatsView()));
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const CharacterStatsView(),
+                              ),
+                            );
                           },
                           child: Padding(
                             padding: const EdgeInsets.all(16),
@@ -173,15 +182,12 @@ class _ClassSelectionViewState extends State<ClassSelectionView> {
 }
 
 Widget _buildClassInfo(IconData icon, String text, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: color),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(fontSize: 13, color: Colors.grey[800]),
-        ),
-      ],
-    );
-  }
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 14, color: color),
+      const SizedBox(width: 4),
+      Text(text, style: TextStyle(fontSize: 13, color: Colors.grey[800])),
+    ],
+  );
+}
