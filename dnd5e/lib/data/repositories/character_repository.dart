@@ -49,4 +49,38 @@ class CharacterRepository {
       throw Exception('Failed to get feats from Open5e: ${e.message}');
     }
   }
+
+  Future<List<Map<String, dynamic>>> getSpells(
+  String dndClass, {
+  int page = 1,
+}) async {
+  try {
+    final response = await _dio.get(
+      '/spells/?dnd_class__icontains=$dndClass&document__slug=wotc-srd',
+      queryParameters: {'page': page},
+    );
+    return List<Map<String, dynamic>>.from(response.data['results']);
+  } catch (e) {
+    throw Exception('Error loading spells page $page for $dndClass: $e');
+  }
+}
+
+Future<int> getSpellsPageCount(String dndClass) async {
+  try {
+    // Es vital aplicar el mismo filtro de clase aquí
+    final response = await _dio.get(
+      '/spells/?dnd_class__icontains=$dndClass&document__slug=wotc-srd',
+    );
+    
+    final count = response.data['count'] as int;
+    final results = response.data['results'] as List;
+    
+    if (results.isEmpty || count == 0) return 0;
+    
+    final pageSize = results.length;
+    return (count / pageSize).ceil();
+  } catch (e) {
+    return 29; 
+  }
+}
 }

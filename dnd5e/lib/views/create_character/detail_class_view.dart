@@ -1,3 +1,4 @@
+import 'package:dnd5e/data/repositories/character_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../view_models/character/character_view_model.dart';
@@ -9,6 +10,8 @@ import '../../widgets/create_character_view/detail_class_view/section/subclass_s
 import '../../widgets/create_character_view/detail_class_view/section/fighting_style_section.dart';
 import '../../widgets/create_character_view/detail_class_view/section/hp_section.dart';
 import '../../widgets/create_character_view/detail_class_view/header.dart';
+import '../../view_models/character/character_spell_view_model.dart';
+import 'character_spell_selection_view.dart';
 import '../../../utils/app_theme.dart';
 
 class DetailClassView extends StatefulWidget {
@@ -23,6 +26,17 @@ class _DetailClassViewState extends State<DetailClassView> {
     final vm = context.watch<CreateCharacterViewModel>();
     final dvm = context.watch<DetailClassViewModel>();
     final charClass = vm.selectedClass;
+    final spellVM_isSpellcaster = (String slug) {
+      const spellcastingClasses = [
+        'bard',
+        'cleric',
+        'druid',
+        'sorcerer',
+        'warlock',
+        'wizard',
+      ];
+      return spellcastingClasses.contains(slug);
+    };
 
     if (charClass == null) {
       return Scaffold(
@@ -106,6 +120,44 @@ class _DetailClassViewState extends State<DetailClassView> {
 
             // ── Class Features (Fighting Style integrado aquí) ─────────────
             ClassTraitsSummary(cls: charClass),
+            if (spellVM_isSpellcaster(charClass.slug))
+              Padding(
+                padding: const EdgeInsets.only(top: 8, bottom: 32),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6A1B9A), // morado mágico
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChangeNotifierProvider(
+                            create: (ctx) => CharacterSpellViewModel(
+                              ctx.read<CharacterRepository>(),
+                            ),
+                            child: const CharacterSpellSelectionView(),
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.auto_fix_high, size: 20),
+                    label: const Text(
+                      'Continue to Spell Selection',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             const SizedBox(height: 32),
           ],
         ),
@@ -118,5 +170,4 @@ class _DetailClassViewState extends State<DetailClassView> {
     title: const Text('Class Details'),
     backgroundColor: AppTheme.primaryRed,
   );
-
 }

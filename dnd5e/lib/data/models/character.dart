@@ -10,7 +10,7 @@ class Character with _$Character {
     String? id,
     required String name,
     required String race,
-    required CharacterClass characterClass, // Ya contiene hit_dice y profs
+    required CharacterClass characterClass, 
     required int level,
     required int strength,
     required int dexterity,
