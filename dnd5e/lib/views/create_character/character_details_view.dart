@@ -9,6 +9,7 @@ import '../../view_models/character/character_skill_view_model.dart';
 import '../../view_models/character/character_equipment_view_model.dart';
 import '../../view_models/character/character_language_view_model.dart';
 import '../../view_models/character/character_detail_class_view_model.dart';
+import '../../view_models/character/character_subclass_view_model.dart';
 import '../../views/create_character/detail_class_view.dart';
 import '../../widgets/create_character_view/detail_view/sections/dragonbron_section.dart';
 import '../../utils/app_theme.dart';
@@ -61,8 +62,25 @@ class CharacterSkillAndEquipmentView extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => ChangeNotifierProvider(
-                        create: (_) => DetailClassViewModel(),
+                      builder: (context) => MultiProvider(
+                        providers: [
+                          ChangeNotifierProvider<DetailClassViewModel>(
+                            create: (_) => DetailClassViewModel(),
+                          ),
+                          ChangeNotifierProxyProvider2<
+                            DetailClassViewModel,
+                            CreateCharacterViewModel,
+                            CharacterSubclassViewModel
+                          >(
+                            create: (ctx) => CharacterSubclassViewModel(),
+                            update: (ctx, detailClassVM, createCharVM, subclassVM) {
+                              return subclassVM!..updateDependencies(
+                                detailClassVM: detailClassVM,
+                                skillVM: createCharVM.skillVM,
+                              );
+                            },
+                          ),
+                        ],
                         child: const DetailClassView(),
                       ),
                     ),

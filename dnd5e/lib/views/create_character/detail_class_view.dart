@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../view_models/character/character_view_model.dart';
 import '../../view_models/character/character_detail_class_view_model.dart';
+import '../../view_models/character/character_subclass_view_model.dart';
 import '../../widgets/create_character_view/detail_class_view/summary/traits_summary.dart';
 import '../../widgets/create_character_view/detail_class_view/summary/background_summary.dart';
 import '../../widgets/create_character_view/detail_class_view/summary/race_summary.dart';
@@ -25,6 +26,8 @@ class _DetailClassViewState extends State<DetailClassView> {
   Widget build(BuildContext context) {
     final vm = context.watch<CreateCharacterViewModel>();
     final dvm = context.watch<DetailClassViewModel>();
+    final subclassVM = context.watch<CharacterSubclassViewModel>();
+    final characterVM = context.watch<CreateCharacterViewModel>();
     final charClass = vm.selectedClass;
     final spellVM_isSpellcaster = (String slug) {
       const spellcastingClasses = [
@@ -104,10 +107,18 @@ class _DetailClassViewState extends State<DetailClassView> {
             subclassSection(
               context,
               dvm: dvm,
+              subclassVM:
+                  subclassVM, // <-- Pasamos el nuevo ViewModel de subclases
               archetypes: archetypes,
               subtypesName: subtypesName,
               canChoose: canChoose,
               unlockLevel: unlockLevel,
+              // ── Construimos la lista de competencias actuales para mitigar duplicados ──
+              existingSkills: [
+                ...vm.skillVM.classFixedSkills,
+                ...vm.skillVM.bgFixedSkills,
+                ...vm.skillVM.selectedClassSkills,
+              ],
             ),
             const Divider(height: 40, thickness: 1.2),
 

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // NECESARIO para context.read()
 import '../../../../view_models/character/character_detail_class_view_model.dart';
+import '../../../../view_models/character/character_subclass_view_model.dart'; // IMPORTANTE
+import '../../../../view_models/character/character_view_model.dart'; // IMPORTANTE
 import '../../../../utils/app_theme.dart';
 
 Widget archetypeCard(
@@ -19,8 +22,23 @@ Widget archetypeCard(
       ? '${desc.substring(0, 110)}…'
       : desc;
 
+  void handleSelection() {
+    if (!canChoose) return;
+
+    final subclassVM = context.read<CharacterSubclassViewModel>();
+    final mainVM = context.read<CreateCharacterViewModel>();
+
+    final existingSkills = <String>[
+      ...mainVM.skillVM.classFixedSkills,
+      ...mainVM.skillVM.bgFixedSkills,
+      ...mainVM.skillVM.selectedClassSkills,
+    ];
+
+    subclassVM.setArchetype(isSelected ? null : arch, existingSkills);
+  }
+
   return GestureDetector(
-    onTap: canChoose ? () => dvm.selectArchetype(isSelected ? {} : arch) : null,
+    onTap: handleSelection, // <-- Se actualizó para usar el nuevo método
     child: AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       margin: const EdgeInsets.only(bottom: 10),
@@ -79,7 +97,7 @@ Widget archetypeCard(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  onPressed: () => dvm.selectArchetype(isSelected ? {} : arch),
+                  onPressed: handleSelection, // <-- EL BOTÓN AHORA TAMBIÉN USA EL NUEVO MÉTODO
                   icon: Icon(isSelected ? Icons.close : Icons.check, size: 16),
                   label: Text(isSelected ? 'Deselect' : 'Select $name'),
                 ),

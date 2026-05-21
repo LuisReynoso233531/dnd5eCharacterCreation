@@ -130,7 +130,7 @@ class _CharacterSpellSelectionViewState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Spell Selection'),
+        title: Text('Spell Selection: ${cls.slug[0].toUpperCase() + cls.slug.substring(1)} ${vm.level}'),
         backgroundColor: AppTheme.primaryRed,
         bottom: TabBar(
           controller: _tabController,

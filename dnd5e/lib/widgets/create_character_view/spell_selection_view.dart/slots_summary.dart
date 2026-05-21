@@ -18,6 +18,6 @@ Widget slotsSummary(String slug, SpellcastingInfo info) {
 
   return Text(
     'Spell Slots: $slotsText',
-    style: const TextStyle(color: Colors.white54, fontSize: 11),
+    style: const TextStyle(color: Colors.white, fontSize: 12),
   );
 }
