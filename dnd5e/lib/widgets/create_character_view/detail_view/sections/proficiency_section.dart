@@ -3,15 +3,17 @@ import '../../../../view_models/character/character_view_model.dart';
 import '../section_title.dart';
 
 Widget buildProficienciesSection(CreateCharacterViewModel vm) {
-  final hasAny = vm.armorProficiencies.isNotEmpty ||
+  final hasAny =
+      vm.armorProficiencies.isNotEmpty ||
       vm.weaponProficiencies.isNotEmpty ||
       vm.toolProficiencies.isNotEmpty ||
-      vm.racialSkillProfFromTraits.isNotEmpty;
+      vm.racialSkillProfFromTraits.isNotEmpty ||
+      vm.featProficiencies.isNotEmpty;
 
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      sectionTitle("Armor, Weapons & Tools"),
+      sectionTitle("Proficiencies"),
       const SizedBox(height: 4),
 
       if (!hasAny)
@@ -44,7 +46,6 @@ Widget buildProficienciesSection(CreateCharacterViewModel vm) {
           Icons.handyman,
         ),
 
-      // Skills raciales (separadas de las skill proficiencies del personaje)
       if (vm.racialSkillProfFromTraits.isNotEmpty)
         _buildProficiencyTag(
           "Racial Skills",
@@ -52,12 +53,24 @@ Widget buildProficienciesSection(CreateCharacterViewModel vm) {
           Colors.teal,
           Icons.auto_awesome,
         ),
+
+      if (vm.featProficiencies.isNotEmpty)
+        _buildProficiencyTag(
+          "From Feats",
+          vm.featProficiencies,
+          Colors.deepPurple,
+          Icons.stars,
+        ),
     ],
   );
 }
 
 Widget _buildProficiencyTag(
-    String label, List<String> items, Color color, IconData icon) {
+  String label,
+  List<String> items,
+  Color color,
+  IconData icon,
+) {
   return Padding(
     padding: const EdgeInsets.only(bottom: 12.0),
     child: Column(
@@ -81,12 +94,19 @@ Widget _buildProficiencyTag(
         Wrap(
           spacing: 6,
           runSpacing: 6,
-          children: items.map((p) => Chip(
-            label: Text(p, style: const TextStyle(fontSize: 12, color: Colors.white)),
-            backgroundColor: color.withOpacity(0.75),
-            visualDensity: VisualDensity.compact,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-          )).toList(),
+          children: items
+              .map(
+                (p) => Chip(
+                  label: Text(
+                    p,
+                    style: const TextStyle(fontSize: 12, color: Colors.white),
+                  ),
+                  backgroundColor: color.withOpacity(0.75),
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                ),
+              )
+              .toList(),
         ),
       ],
     ),

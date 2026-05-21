@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import '../../data/models/character_class.dart';
 import '../../data/repositories/character_repository.dart';
+import '../../utils/tools.dart';
+import '../../utils/weapons.dart';
 import 'character_skill_view_model.dart';
 import 'character_equipment_view_model.dart';
 import 'character_language_view_model.dart';
@@ -92,12 +94,48 @@ class CreateCharacterViewModel extends ChangeNotifier {
 
   // ─── Proficiencias consolidadas ───────────────────────────────────────────
   List<String> get armorProficiencies {
-    final prof = _selectedClass?.prof_armor ?? '';
-    if (prof.isEmpty || prof == 'null') return [];
-    return [prof];
+    final profs = <String>{};
+    if (_selectedClass?.prof_armor?.isNotEmpty == true &&
+        _selectedClass!.prof_armor != 'null') {
+      profs.add(_selectedClass!.prof_armor!);
+    }
+
+    // Feats
+    _levelUpChoices.forEach((lvl, choice) {
+      if (choice['type'] == 'feat') {
+        final resolved = _featChoices[lvl];
+        resolved?.proficiencies
+            .where((p) => _isArmorProficiency(p))
+            .forEach(profs.add);
+      }
+    });
+
+    return profs.toList();
   }
 
-    static int proficiencyBonus(int level) {
+  bool _isArmorProficiency(String p) {
+    final lower = p.toLowerCase();
+    return lower.contains('armor') ||
+        lower.contains('shield') ||
+        lower.contains('heavy') ||
+        lower.contains('medium') ||
+        lower.contains('light armor');
+  }
+
+  List<String> get featProficiencies {
+    final result = <String>{};
+    _levelUpChoices.forEach((lvl, choice) {
+      if (choice['type'] == 'feat') {
+        final resolved = _featChoices[lvl];
+        if (resolved != null && resolved.proficiencies.isNotEmpty) {
+          result.addAll(resolved.proficiencies);
+        }
+      }
+    });
+    return result.toList();
+  }
+
+  static int proficiencyBonus(int level) {
     if (level <= 4) return 2;
     if (level <= 8) return 3;
     if (level <= 12) return 4;
@@ -105,25 +143,62 @@ class CreateCharacterViewModel extends ChangeNotifier {
     return 6;
   }
 
-  List<String> get weaponProficiencies => {
+  List<String> get weaponProficiencies {
+    final profs = <String>{};
     if (_selectedClass?.prof_weapons?.isNotEmpty == true &&
-        _selectedClass!.prof_weapons != 'null')
-      _selectedClass!.prof_weapons!,
-    ...racialWeaponProficiencies,
-  }.toList();
+        _selectedClass!.prof_weapons != 'null') {
+      profs.add(_selectedClass!.prof_weapons!);
+    }
+    profs.addAll(racialWeaponProficiencies);
+
+    // Feats
+    _levelUpChoices.forEach((lvl, choice) {
+      if (choice['type'] == 'feat') {
+        final resolved = _featChoices[lvl];
+        resolved?.proficiencies
+            .where((p) => _isWeaponProficiency(p))
+            .forEach(profs.add);
+      }
+    });
+
+    return profs.toList();
+  }
+
+  bool _isWeaponProficiency(String p) {
+    final lower = p.toLowerCase();
+    return lower.contains('weapon') ||
+        knownWeapons.any((w) => lower.contains(w));
+  }
 
   List<String> get toolProficiencies {
     final profs = <String>{};
+
+    // De la clase
     if (_selectedClass?.prof_tools?.isNotEmpty == true &&
         _selectedClass!.prof_tools != 'null') {
       profs.add(_selectedClass!.prof_tools!);
     }
+
+    // Del background
     final bgTools = _selectedBackground?['tool_proficiencies']?.toString();
     if (bgTools != null && bgTools.isNotEmpty && bgTools != 'null') {
       profs.add(bgTools);
     }
+
+    // De la raza (traits)
     profs.addAll(racialToolProficiencies);
-    return profs.toList();
+
+    // ── NUEVO: De feats seleccionados ──────────────────────────────────────
+    _levelUpChoices.forEach((lvl, choice) {
+      if (choice['type'] == 'feat') {
+        final resolved = _featChoices[lvl];
+        if (resolved != null && resolved.proficiencies.isNotEmpty) {
+          profs.addAll(resolved.proficiencies);
+        }
+      }
+    });
+
+    return profs.where((s) => s.isNotEmpty).toList();
   }
 
   List<String> get allToolAndArmorProficiencies {
@@ -211,7 +286,7 @@ class CreateCharacterViewModel extends ChangeNotifier {
         "Breath Weapon: ${d['damage_type']} damage, ${d['breath_weapon']}";
   }
 
- String getCleanedRaceTraits() {
+  String getCleanedRaceTraits() {
     final race = selectedRace; // Usamos la variable directa de la clase
     if (race == null) return '';
 
@@ -222,7 +297,9 @@ class CreateCharacterViewModel extends ChangeNotifier {
 
       // 1. Eliminar la tabla Markdown completa (método seguro por líneas)
       final lines = traits.split('\n');
-      final cleanLines = lines.where((line) => !line.trim().startsWith('|')).toList();
+      final cleanLines = lines
+          .where((line) => !line.trim().startsWith('|'))
+          .toList();
       traits = cleanLines.join('\n');
 
       // 2. Eliminar el título "Draconic Ancestry" suelto que queda arriba
@@ -235,7 +312,8 @@ class CreateCharacterViewModel extends ChangeNotifier {
       if (selected == null) return traits;
 
       // 4. Si eligió, anteponer su elección específica como bloque destacado
-      final ancestryBlock = 'DRACONIC ANCESTRY: ${selected['dragon']?.toUpperCase()}\n'
+      final ancestryBlock =
+          'DRACONIC ANCESTRY: ${selected['dragon']?.toUpperCase()}\n'
           '• Damage Resistance: ${selected['damage_type']}\n'
           '• Breath Weapon: ${selected['breath_weapon']}';
 
@@ -368,6 +446,9 @@ class CreateCharacterViewModel extends ChangeNotifier {
     } else {
       _featChoices.remove(level);
     }
+
+    _syncFeatLanguagesToLanguageVM();
+
     _calculateMaxHp();
     notifyListeners();
   }
@@ -404,6 +485,14 @@ class CreateCharacterViewModel extends ChangeNotifier {
           (int.tryParse(req.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0);
     }
     return true;
+  }
+
+  void _syncFeatLanguagesToLanguageVM() {
+    final allFeatLanguages = <String>{};
+    _featChoices.forEach((_, choice) {
+      allFeatLanguages.addAll(choice.languages);
+    });
+    languageVM.updateFeatLanguages(allFeatLanguages.toList());
   }
 
   Future<void> loadFeatsIfNeeded() async {
@@ -482,6 +571,7 @@ class CreateCharacterViewModel extends ChangeNotifier {
     skillVM.reset();
     equipmentVM.reset();
     languageVM.reset();
+     _syncFeatLanguagesToLanguageVM();
     notifyListeners();
   }
 
@@ -525,61 +615,6 @@ class CreateCharacterViewModel extends ChangeNotifier {
   }
 
   // ─── Parsers de traits raciales ───────────────────────────────────────────
-  static const _knownWeapons = [
-    'battleaxe',
-    'handaxe',
-    'light hammer',
-    'warhammer',
-    'longsword',
-    'shortsword',
-    'shortbow',
-    'longbow',
-    'spear',
-    'crossbow',
-    'dagger',
-    'rapier',
-    'scimitar',
-    'greataxe',
-    'greatsword',
-    'trident',
-    'javelin',
-    'quarterstaff',
-    'simple weapons',
-    'martial weapons',
-    'hand crossbow',
-    'light crossbow',
-    'heavy crossbow',
-    'war pick',
-    'flail',
-    'mace',
-  ];
-
-  static const _knownTools = [
-    "artisan's tools",
-    "thieves' tools",
-    "herbalism kit",
-    "poisoner's kit",
-    "disguise kit",
-    "forgery kit",
-    "navigator's tools",
-    "alchemist's supplies",
-    "brewer's supplies",
-    "carpenter's tools",
-    "cobbler's tools",
-    "cook's utensils",
-    "glassblower's tools",
-    "jeweler's tools",
-    "leatherworker's tools",
-    "mason's tools",
-    "painter's supplies",
-    "potter's tools",
-    "smith's tools",
-    "tinker's tools",
-    "weaver's tools",
-    "woodcarver's tools",
-    "gaming set",
-    "musical instrument",
-  ];
 
   List<String> _extractWeaponProfsFromTraits(String traits) {
     final weapons = <String>{};
@@ -588,7 +623,7 @@ class CreateCharacterViewModel extends ChangeNotifier {
     for (final match in pattern.allMatches(lower)) {
       final found = match.group(1) ?? '';
       if (found.contains('weapon') ||
-          _knownWeapons.any((w) => found.contains(w))) {
+          knownWeapons.any((w) => found.contains(w))) {
         final clean = found
             .replaceAll(RegExp(r'\s+'), ' ')
             .replaceAll(RegExp(r'[*_]'), '')
@@ -596,7 +631,7 @@ class CreateCharacterViewModel extends ChangeNotifier {
         for (final item in clean.split(RegExp(r',| and '))) {
           final t = item.trim();
           if (t.isNotEmpty &&
-              (_knownWeapons.any((w) => t.contains(w)) ||
+              (knownWeapons.any((w) => t.contains(w)) ||
                   t.contains('weapon'))) {
             weapons.add(_titleCase(t));
           }
@@ -639,7 +674,7 @@ class CreateCharacterViewModel extends ChangeNotifier {
     );
     for (final match in pattern.allMatches(lower)) {
       final found = match.group(1) ?? '';
-      for (final tool in _knownTools) {
+      for (final tool in knownTools) {
         if (found.contains(tool)) tools.add(_titleCase(tool));
       }
     }
@@ -662,5 +697,10 @@ class CreateCharacterViewModel extends ChangeNotifier {
 class ResolvedFeatChoice {
   final String? chosenStat;
   final List<String> proficiencies;
-  const ResolvedFeatChoice({this.chosenStat, this.proficiencies = const []});
+  final List<String> languages;
+  const ResolvedFeatChoice({
+    this.chosenStat,
+    this.proficiencies = const [],
+    this.languages = const [],
+  });
 }

@@ -27,7 +27,6 @@ class _DetailClassViewState extends State<DetailClassView> {
     final vm = context.watch<CreateCharacterViewModel>();
     final dvm = context.watch<DetailClassViewModel>();
     final subclassVM = context.watch<CharacterSubclassViewModel>();
-    final characterVM = context.watch<CreateCharacterViewModel>();
     final charClass = vm.selectedClass;
     final spellVM_isSpellcaster = (String slug) {
       const spellcastingClasses = [

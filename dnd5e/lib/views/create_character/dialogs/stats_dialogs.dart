@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../view_models/character/character_view_model.dart';
 import '../../../utils/app_theme.dart';
+import '../../../utils/languajes.dart';
 
 class StatsDialogs {
   static void showConfirmRoll(
@@ -161,7 +162,19 @@ class StatsDialogs {
                                   statChoice,
                                 );
                               } else {
-                                vm.setLevelChoice(level, 'feat', feat);
+                                final profs = _extractProficienciesFromFeat(
+                                  feat,
+                                );
+                                final langs = _extractLanguagesFromFeat(feat);
+                                vm.setLevelChoice(
+                                  level,
+                                  'feat',
+                                  feat,
+                                  featChoice: ResolvedFeatChoice(
+                                    proficiencies: profs,
+                                    languages: langs,
+                                  ),
+                                );
                               }
                             },
                             onLongPress: () => showFeatDetails(context, feat),
@@ -264,7 +277,7 @@ class StatsDialogs {
   static List<String>? _detectStatChoice(Map<String, dynamic> feat) {
     final effects = (feat['effects_desc'] as List? ?? []);
     final desc = feat['desc']?.toString() ?? '';
-    
+
     final statNames = [
       'Strength',
       'Dexterity',
@@ -278,12 +291,12 @@ class StatsDialogs {
     final fullText = (desc + " " + effects.join(" ")).toLowerCase();
 
     // REGLA 1: Si el texto indica que es una elección libre global
-    if (fullText.contains('of your choice') || 
-        fullText.contains('any ability score') || 
+    if (fullText.contains('of your choice') ||
+        fullText.contains('any ability score') ||
         fullText.contains('any point') ||
         fullText.contains('choose an ability')) {
       // Retornamos las 6 características de D&D inmediatamente para que aparezcan todas
-      return statNames; 
+      return statNames;
     }
 
     // REGLA 2: Lógica existente para dotes con opciones cerradas específicas (ej: "Strength or Dexterity")
@@ -332,12 +345,19 @@ class StatsDialogs {
                       side: BorderSide(color: Colors.red[300]!),
                     ),
                     onPressed: () {
+                      final profs = _extractProficienciesFromFeat(feat);
+                      final langs = _extractLanguagesFromFeat(feat);
                       vm.setLevelChoice(
                         level,
                         'feat',
                         feat,
-                        featChoice: ResolvedFeatChoice(chosenStat: stat),
+                        featChoice: ResolvedFeatChoice(
+                          chosenStat: stat,
+                          proficiencies: profs,
+                          languages: langs,
+                        ),
                       );
+                      vm.languageVM.updateFromFeat(feat);
                       Navigator.pop(context);
                     },
                     child: Text("+1 $stat"),
@@ -355,5 +375,114 @@ class StatsDialogs {
         ],
       ),
     );
+  }
+
+  /// Extrae proficiencias concretas del texto de un feat.
+  static List<String> _extractProficienciesFromFeat(Map<String, dynamic> feat) {
+    final effects = (feat['effects_desc'] as List? ?? []);
+    final result = <String>[];
+
+    // Patrones de proficiencia conocidos
+    const armorKeywords = [
+      'light armor',
+      'medium armor',
+      'heavy armor',
+      'shield',
+    ];
+    const weaponKeywords = [
+      'simple weapons',
+      'martial weapons',
+      'battleaxe',
+      'handaxe',
+      'longsword',
+      'shortsword',
+      'rapier',
+      'crossbow',
+      'warhammer',
+    ];
+    const toolKeywords = [
+      "thieves' tools",
+      "artisan's tools",
+      "herbalism kit",
+      "poisoner's kit",
+      "disguise kit",
+      "forgery kit",
+      "navigator's tools",
+      "alchemist's supplies",
+      "gaming set",
+      "musical instrument",
+      "leatherworker's tools",
+      "smith's tools",
+      "tinker's tools",
+      "woodcarver's tools",
+    ];
+
+    for (final e in effects) {
+      final text = e.toString().toLowerCase();
+
+      if (!text.contains('proficien')) continue; // skip líneas irrelevantes
+
+      // Buscar matches con las listas conocidas
+      for (final kw in [...armorKeywords, ...weaponKeywords, ...toolKeywords]) {
+        if (text.contains(kw)) {
+          // Capitalizar la primera letra de cada palabra
+          final clean = kw
+              .split(' ')
+              .map((w) => w[0].toUpperCase() + w.substring(1))
+              .join(' ');
+          result.add(clean);
+        }
+      }
+
+      // Caso especial: "proficiency with one martial weapon" sin nombre concreto
+      if (text.contains('one martial weapon') &&
+          !result.contains('One Martial Weapon')) {
+        result.add('One Martial Weapon (feat)');
+      }
+      if (text.contains('two tools') ||
+          text.contains('two tools of your choice')) {
+        result.add('Two Tools of Choice (feat)');
+      }
+    }
+
+    return result.toSet().toList(); // deduplicar
+  }
+
+  static List<String> _extractLanguagesFromFeat(Map<String, dynamic> feat) {
+    final effects = (feat['effects_desc'] as List? ?? []);
+    final result = <String>{};
+
+    for (final e in effects) {
+      final text = e.toString().toLowerCase();
+
+      // Solo procesar líneas que hablen de idiomas
+      if (!text.contains('language') &&
+          !text.contains('speak') &&
+          !text.contains('read') &&
+          !text.contains('write'))
+        continue;
+
+      // Buscar idiomas específicos mencionados
+      for (final lang in allKnownLanguages) {
+        if (text.contains(lang.toLowerCase())) {
+          result.add(lang);
+        }
+      }
+
+      // Caso especial: "three languages" / "two languages" → placeholder
+      if (text.contains('three languages') ||
+          text.contains('three additional languages')) {
+        result.add('3 Languages of Choice (feat)');
+      } else if (text.contains('two languages') ||
+          text.contains('two additional languages')) {
+        result.add('2 Languages of Choice (feat)');
+      } else if (text.contains('one language') ||
+          text.contains('a language of your choice') ||
+          text.contains('any one language')) {
+        result.add('1 Language of Choice (feat)');
+      }
+    }
+
+    return result.toList();
   }
 }
