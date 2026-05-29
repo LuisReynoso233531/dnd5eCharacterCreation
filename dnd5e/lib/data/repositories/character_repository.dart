@@ -83,4 +83,22 @@ Future<int> getSpellsPageCount(String dndClass) async {
     return 29; 
   }
 }
+
+Future<List<Map<String, dynamic>>> getArmors() async {
+    try {
+      final response = await _dio.get('/armor/');
+      return List<Map<String, dynamic>>.from(response.data['results']);
+    } on DioException catch (e) {
+      throw Exception('Failed to get classes from Open5e: ${e.message}');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getWeapons() async {
+    try {
+      final response = await _dio.get('/weapons/');
+      return List<Map<String, dynamic>>.from(response.data['results']);
+    } on DioException catch (e) {
+      throw Exception('Failed to get classes from Open5e: ${e.message}');
+    }
+  }
 }
