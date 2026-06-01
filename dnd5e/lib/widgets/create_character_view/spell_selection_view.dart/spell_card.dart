@@ -6,14 +6,17 @@ class SpellCard extends StatelessWidget {
   final SpellModel spell;
   final bool isSelected;
   final bool canAdd;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool isCompendiumMode;
 
   const SpellCard({
     super.key,
     required this.spell,
-    required this.isSelected,
-    required this.canAdd,
-    required this.onTap,
+    this.isSelected = false, 
+    this.canAdd = false, 
+    this.onTap, 
+    this.isCompendiumMode =
+        false,
   });
 
   @override
@@ -21,7 +24,7 @@ class SpellCard extends StatelessWidget {
     final color = schoolColor(spell.school);
 
     return GestureDetector(
-      onTap: (isSelected || canAdd) ? onTap : null,
+      onTap: (!isCompendiumMode && (isSelected || canAdd)) ? onTap : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
         margin: const EdgeInsets.only(bottom: 8),
@@ -66,7 +69,6 @@ class SpellCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Badges
                 if (spell.concentration) _badge('C', Colors.orange),
                 const SizedBox(width: 2),
                 if (spell.ritual) _badge('R', Colors.teal),
@@ -82,93 +84,74 @@ class SpellCard extends StatelessWidget {
                 ),
               ],
             ),
-            // Botón select/deselect visible cuando está colapsado
-            trailing: SizedBox(
-              width: 72,
-              child: (isSelected || canAdd)
-                  ? ElevatedButton(
+            trailing: isCompendiumMode
+                ? null
+                : SizedBox(
+                    width: 72,
+                    child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.zero,
                         backgroundColor: isSelected
-                            ? Colors.grey.shade400
+                            ? Colors.red.shade700
                             : color,
                         foregroundColor: Colors.white,
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(64, 28),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(6),
                         ),
                       ),
-                      onPressed: onTap,
+                      onPressed: (isSelected || canAdd) ? onTap : null,
                       child: Text(
                         isSelected ? 'Remove' : 'Add',
-                        style: const TextStyle(fontSize: 11),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    )
-                  : null,
-            ),
-            childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            children: [
-              // Detalles del hechizo
-              _detailRow(Icons.timer, spell.castingTime),
-              _detailRow(Icons.place, spell.range),
-              _detailRow(Icons.access_time, spell.duration),
-              _detailRow(Icons.extension, spell.components),
-              const SizedBox(height: 8),
-              Text(
-                spell.desc,
-                style: const TextStyle(fontSize: 12, height: 1.5),
-              ),
-              if (spell.higherLevel.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.06),
-                    borderRadius: BorderRadius.circular(6),
+                    ),
                   ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(Icons.arrow_upward, size: 14, color: color),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          'At Higher Levels: ${spell.higherLevel}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: color,
-                            fontStyle: FontStyle.italic,
-                          ),
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _detailRow(Icons.bolt, 'Range: ${spell.range}'),
+                    _detailRow(
+                      Icons.hourglass_empty,
+                      'Duration: ${spell.duration}',
+                    ),
+                    _detailRow(Icons.gavel, 'Components: ${spell.components}'),
+                    const Divider(),
+                    Text(
+                      spell.desc,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        height: 1.4,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    if (spell.higherLevel.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      const Text(
+                        "At Higher Levels",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        spell.higherLevel,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          height: 1.4,
+                          fontStyle: FontStyle.italic,
                         ),
                       ),
                     ],
-                  ),
+                  ],
                 ),
-              ],
-              const SizedBox(height: 8),
-              // Botón prominente al fondo de la tarjeta expandida
-              if (isSelected || canAdd)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isSelected ? Colors.grey : color,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    onPressed: onTap,
-                    icon: Icon(
-                      isSelected ? Icons.remove_circle : Icons.add_circle,
-                      size: 16,
-                    ),
-                    label: Text(
-                      isSelected ? 'Remove ${spell.name}' : 'Add ${spell.name}',
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                  ),
-                ),
+              ),
             ],
           ),
         ),
@@ -197,7 +180,7 @@ class SpellCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(4),
     ),
     child: Text(
-      school[0].toUpperCase() + school.substring(1),
+      school.isEmpty ? '' : school[0].toUpperCase() + school.substring(1),
       style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600),
     ),
   );
@@ -205,15 +188,15 @@ class SpellCard extends StatelessWidget {
   Widget _detailRow(IconData icon, String text) => text.isEmpty
       ? const SizedBox.shrink()
       : Padding(
-          padding: const EdgeInsets.only(bottom: 3),
+          padding: const EdgeInsets.only(bottom: 4),
           child: Row(
             children: [
-              Icon(icon, size: 13, color: Colors.grey),
+              Icon(icon, size: 14, color: Colors.grey.shade600),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   text,
-                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                  style: const TextStyle(fontSize: 12, color: Colors.black87),
                 ),
               ),
             ],
