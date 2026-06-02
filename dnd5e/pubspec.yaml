@@ -46,7 +46,7 @@ dependencies:
   # Para PDF y Archivos
   pdf: ^3.10.7
   printing: ^5.11.0
-  syncfusion_flutter_pdf: ^24.1.41 # O la versión más reciente
+  syncfusion_flutter_pdf: ^33.2.8 # O la versión más reciente
   share_plus: ^7.2.1
   path_provider: ^2.1.2
   flutter_dotenv: ^6.0.1

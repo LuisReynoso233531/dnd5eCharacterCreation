@@ -12,7 +12,7 @@ class ArmorModel {
   final bool plusConMod;
   final bool plusWisMod;
   final int plusFlatMod;
-  final int plusMax; // 0 = sin límite
+  final int plusMax; 
   final String acString;
   final int? strengthReq;
   final String cost;

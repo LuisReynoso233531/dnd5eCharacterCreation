@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../view_models/character/character_view_model.dart';
 import '../../view_models/character/character_inventory_view_model.dart';
+import '../../views/create_character/charecter_sheet_view.dart';
 
 const _kRed = Color(0xFFE50914);
 
@@ -39,13 +40,13 @@ class _CharacterInventoryViewState extends State<CharacterInventoryView> {
     final conMod = vm.getModifier('Constitution');
     final wisMod = vm.getModifier('Wisdom');
     final totalAC = inv.calculateTotalAC(
-        dexMod: dexMod, conMod: conMod, wisMod: wisMod);
+      dexMod: dexMod,
+      conMod: conMod,
+      wisMod: wisMod,
+    );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Equipment'),
-        backgroundColor: _kRed,
-      ),
+      appBar: AppBar(title: const Text('Equipment'), backgroundColor: _kRed),
       body: inv.isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -60,9 +61,10 @@ class _CharacterInventoryViewState extends State<CharacterInventoryView> {
                   // ── Background Equipment ──────────────────────────────────
                   if (inv.backgroundEquipmentText.isNotEmpty) ...[
                     _SectionHeader(
-                        title: 'Background Equipment',
-                        subtitle: 'Choose the equipment.',
-                        icon: Icons.history_edu),
+                      title: 'Background Equipment',
+                      subtitle: 'Choose the equipment.',
+                      icon: Icons.history_edu,
+                    ),
                     const SizedBox(height: 8),
                     _BackgroundEquipmentCard(text: inv.backgroundEquipmentText),
                     const SizedBox(height: 24),
@@ -70,46 +72,50 @@ class _CharacterInventoryViewState extends State<CharacterInventoryView> {
 
                   // ── Armors ───────────────────────────────────────────────
                   _SectionHeader(
-                      title: 'Armors',
-                      subtitle: 'Choose the equipment.',
-                      icon: Icons.security),
+                    title: 'Armors',
+                    subtitle: 'Choose the equipment.',
+                    icon: Icons.security,
+                  ),
                   const SizedBox(height: 12),
                   _ArmorSection(inv: inv, dexMod: dexMod),
                   const SizedBox(height: 24),
 
                   // ── Weapons ──────────────────────────────────────────────
                   _SectionHeader(
-                      title: 'Weapons',
-                      subtitle: 'Choose the equipment.',
-                      icon: Icons.gavel),
+                    title: 'Weapons',
+                    subtitle: 'Choose the equipment.',
+                    icon: Icons.gavel,
+                  ),
                   const SizedBox(height: 12),
                   _WeaponSection(inv: inv),
                   const SizedBox(height: 24),
 
                   // ── Tools ────────────────────────────────────────────────
                   _SectionHeader(
-                      title: 'Tools',
-                      subtitle: 'Add your tools.',
-                      icon: Icons.handyman),
+                    title: 'Tools',
+                    subtitle: 'Add your tools.',
+                    icon: Icons.handyman,
+                  ),
                   const SizedBox(height: 12),
-                  _ToolSection(
-                      inv: inv, controller: _toolController),
+                  _ToolSection(inv: inv, controller: _toolController),
                   const SizedBox(height: 24),
 
                   // ── Money ────────────────────────────────────────────────
                   _SectionHeader(
-                      title: 'Money',
-                      subtitle: 'Your current wealth.',
-                      icon: Icons.monetization_on),
+                    title: 'Money',
+                    subtitle: 'Your current wealth.',
+                    icon: Icons.monetization_on,
+                  ),
                   const SizedBox(height: 12),
                   _MoneySection(inv: inv),
                   const SizedBox(height: 24),
 
                   // ── Treasures & Magic Items ───────────────────────────────
                   _SectionHeader(
-                      title: 'Treasures & Magic Items',
-                      subtitle: '',
-                      icon: Icons.auto_awesome),
+                    title: 'Treasures & Magic Items',
+                    subtitle: '',
+                    icon: Icons.auto_awesome,
+                  ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _treasuresController,
@@ -117,13 +123,41 @@ class _CharacterInventoryViewState extends State<CharacterInventoryView> {
                     decoration: InputDecoration(
                       hintText: 'Enter treasures and magic items...',
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       filled: true,
                       fillColor: Colors.white,
                     ),
                     onChanged: inv.updateTreasures,
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1A237E),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CharacterSheetView(),
+                        ),
+                      ),
+                      icon: const Icon(Icons.picture_as_pdf, size: 22),
+                      label: const Text(
+                        'Generate Character Sheet',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -137,8 +171,7 @@ class _ACCard extends StatelessWidget {
   final CharacterInventoryViewModel inv;
   final CreateCharacterViewModel vm;
 
-  const _ACCard(
-      {required this.totalAC, required this.inv, required this.vm});
+  const _ACCard({required this.totalAC, required this.inv, required this.vm});
 
   @override
   Widget build(BuildContext context) {
@@ -162,14 +195,19 @@ class _ACCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Armor Class',
-                  style: TextStyle(color: Colors.white70, fontSize: 12)),
-              Text('$totalAC',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 42,
-                      fontWeight: FontWeight.bold,
-                      height: 1.1)),
+              const Text(
+                'Armor Class',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              Text(
+                '$totalAC',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 42,
+                  fontWeight: FontWeight.bold,
+                  height: 1.1,
+                ),
+              ),
             ],
           ),
           const Spacer(),
@@ -193,14 +231,16 @@ class _ACCard extends StatelessWidget {
   }
 
   Widget _acChip(String label) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(label,
-            style: const TextStyle(color: Colors.white, fontSize: 11)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(0.2),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Text(
+      label,
+      style: const TextStyle(color: Colors.white, fontSize: 11),
+    ),
+  );
 }
 
 // ─── Section Header ───────────────────────────────────────────────────────────
@@ -209,8 +249,11 @@ class _SectionHeader extends StatelessWidget {
   final String subtitle;
   final IconData icon;
 
-  const _SectionHeader(
-      {required this.title, required this.subtitle, required this.icon});
+  const _SectionHeader({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -228,15 +271,19 @@ class _SectionHeader extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold)),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               if (subtitle.isNotEmpty)
-                Text(subtitle,
-                    style: const TextStyle(
-                        color: Colors.white70, fontSize: 12)),
+                Text(
+                  subtitle,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
             ],
           ),
         ],
@@ -266,9 +313,10 @@ class _BackgroundEquipmentCard extends StatelessWidget {
           Icon(Icons.history_edu, color: Colors.blueGrey.shade400, size: 18),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(text,
-                style: TextStyle(
-                    color: Colors.blueGrey.shade700, fontSize: 13)),
+            child: Text(
+              text,
+              style: TextStyle(color: Colors.blueGrey.shade700, fontSize: 13),
+            ),
           ),
         ],
       ),
@@ -296,8 +344,7 @@ class _ArmorSection extends StatelessWidget {
         _StyledDropdown<ArmorModel>(
           value: inv.equippedArmor,
           items: [null, ...inv.regularArmors],
-          labelBuilder: (a) =>
-              a == null ? '-- No armor' : _armorLabel(a),
+          labelBuilder: (a) => a == null ? '-- No armor' : _armorLabel(a),
           onChanged: inv.equipArmor,
           icon: Icons.security,
         ),
@@ -307,8 +354,9 @@ class _ArmorSection extends StatelessWidget {
         _StyledDropdown<ArmorModel>(
           value: inv.equippedShield,
           items: [null, ...inv.shields],
-          labelBuilder: (s) =>
-              s == null ? '-- No shield' : '${s.name}, CA ${s.acString} (${s.cost})',
+          labelBuilder: (s) => s == null
+              ? '-- No shield'
+              : '${s.name}, CA ${s.acString} (${s.cost})',
           onChanged: inv.equipShield,
           icon: Icons.shield,
         ),
@@ -325,9 +373,10 @@ class _ArmorSection extends StatelessWidget {
                 Text(
                   'Requires STR ${inv.equippedArmor!.strengthReq}',
                   style: const TextStyle(
-                      color: Colors.amber,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12),
+                    color: Colors.amber,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -355,67 +404,82 @@ class _WeaponSection extends StatelessWidget {
     return Column(
       children: [
         // Lista de armas seleccionadas
-        ...inv.weaponEntries.map((entry) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.gavel, size: 16, color: _kRed),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(entry.weapon.name,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13)),
-                                Text(
-                                  '${entry.weapon.damageDice} ${entry.weapon.damageType}'
-                                  '${entry.weapon.properties.isNotEmpty ? ' · ${entry.weapon.properties.take(2).join(', ')}' : ''}',
-                                  style: const TextStyle(
-                                      color: Colors.grey, fontSize: 11),
+        ...inv.weaponEntries.map(
+          (entry) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.gavel, size: 16, color: _kRed),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                entry.weapon.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
                                 ),
-                              ],
-                            ),
+                              ),
+                              Text(
+                                '${entry.weapon.damageDice} ${entry.weapon.damageType}'
+                                '${entry.weapon.properties.isNotEmpty ? ' · ${entry.weapon.properties.take(2).join(', ')}' : ''}',
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 8),
+                ),
+                const SizedBox(width: 8),
 
-                  // Cantidad
-                  _QuantityPicker(
-                    value: entry.quantity,
-                    onDecrement: () => inv.updateWeaponQuantity(
-                        entry.weapon.slug, entry.quantity - 1),
-                    onIncrement: () => inv.updateWeaponQuantity(
-                        entry.weapon.slug, entry.quantity + 1),
+                // Cantidad
+                _QuantityPicker(
+                  value: entry.quantity,
+                  onDecrement: () => inv.updateWeaponQuantity(
+                    entry.weapon.slug,
+                    entry.quantity - 1,
                   ),
-                  const SizedBox(width: 4),
+                  onIncrement: () => inv.updateWeaponQuantity(
+                    entry.weapon.slug,
+                    entry.quantity + 1,
+                  ),
+                ),
+                const SizedBox(width: 4),
 
-                  // Quitar
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 18, color: _kRed),
-                    onPressed: () => inv.removeWeapon(entry.weapon.slug),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                        minWidth: 32, minHeight: 32),
+                // Quitar
+                IconButton(
+                  icon: const Icon(Icons.close, size: 18, color: _kRed),
+                  onPressed: () => inv.removeWeapon(entry.weapon.slug),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
                   ),
-                ],
-              ),
-            )),
+                ),
+              ],
+            ),
+          ),
+        ),
 
         // Dropdown para agregar arma
         _WeaponAddDropdown(allWeapons: allWeapons, inv: inv),
@@ -428,8 +492,7 @@ class _WeaponAddDropdown extends StatefulWidget {
   final List<WeaponModel> allWeapons;
   final CharacterInventoryViewModel inv;
 
-  const _WeaponAddDropdown(
-      {required this.allWeapons, required this.inv});
+  const _WeaponAddDropdown({required this.allWeapons, required this.inv});
 
   @override
   State<_WeaponAddDropdown> createState() => _WeaponAddDropdownState();
@@ -460,7 +523,8 @@ class _WeaponAddDropdownState extends State<_WeaponAddDropdown> {
                 backgroundColor: _kRed,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
               onPressed: () {
                 widget.inv.addWeapon(_pending!);
@@ -488,23 +552,24 @@ class _ToolSection extends StatelessWidget {
     return Column(
       children: [
         // Herramientas existentes
-        ...inv.tools.map((tool) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _StyledDropdown<String>(
-                value: tool,
-                items: inv.tools,
-                labelBuilder: (t) => t ?? '',
-                onChanged: (_) {},
-                icon: Icons.handyman,
-                trailing: IconButton(
-                  icon: const Icon(Icons.close, size: 18, color: _kRed),
-                  onPressed: () => inv.removeTool(tool),
-                  padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(minWidth: 32, minHeight: 32),
-                ),
+        ...inv.tools.map(
+          (tool) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _StyledDropdown<String>(
+              value: tool,
+              items: inv.tools,
+              labelBuilder: (t) => t ?? '',
+              onChanged: (_) {},
+              icon: Icons.handyman,
+              trailing: IconButton(
+                icon: const Icon(Icons.close, size: 18, color: _kRed),
+                onPressed: () => inv.removeTool(tool),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               ),
-            )),
+            ),
+          ),
+        ),
 
         // Agregar herramienta
         Row(
@@ -516,7 +581,8 @@ class _ToolSection extends StatelessWidget {
                   labelText: '-- Tools',
                   prefixIcon: const Icon(Icons.handyman, size: 18),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
@@ -528,7 +594,8 @@ class _ToolSection extends StatelessWidget {
                 backgroundColor: _kRed,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 padding: const EdgeInsets.all(12),
               ),
               onPressed: () {
@@ -556,25 +623,30 @@ class _MoneySection extends StatelessWidget {
     return Row(
       children: [
         _MoneyField(
-            label: 'gp',
-            value: inv.gp,
-            onChanged: (v) => inv.updateMoney(newGp: v)),
+          label: 'gp',
+          value: inv.gp,
+          onChanged: (v) => inv.updateMoney(newGp: v),
+        ),
         _MoneyField(
-            label: 'pp',
-            value: inv.pp,
-            onChanged: (v) => inv.updateMoney(newPp: v)),
+          label: 'pp',
+          value: inv.pp,
+          onChanged: (v) => inv.updateMoney(newPp: v),
+        ),
         _MoneyField(
-            label: 'ep',
-            value: inv.ep,
-            onChanged: (v) => inv.updateMoney(newEp: v)),
+          label: 'ep',
+          value: inv.ep,
+          onChanged: (v) => inv.updateMoney(newEp: v),
+        ),
         _MoneyField(
-            label: 'sp',
-            value: inv.sp,
-            onChanged: (v) => inv.updateMoney(newSp: v)),
+          label: 'sp',
+          value: inv.sp,
+          onChanged: (v) => inv.updateMoney(newSp: v),
+        ),
         _MoneyField(
-            label: 'cp',
-            value: inv.cp,
-            onChanged: (v) => inv.updateMoney(newCp: v)),
+          label: 'cp',
+          value: inv.cp,
+          onChanged: (v) => inv.updateMoney(newCp: v),
+        ),
       ],
     );
   }
@@ -585,8 +657,11 @@ class _MoneyField extends StatefulWidget {
   final int value;
   final ValueChanged<int> onChanged;
 
-  const _MoneyField(
-      {required this.label, required this.value, required this.onChanged});
+  const _MoneyField({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   State<_MoneyField> createState() => _MoneyFieldState();
@@ -604,8 +679,7 @@ class _MoneyFieldState extends State<_MoneyField> {
   @override
   void didUpdateWidget(_MoneyField old) {
     super.didUpdateWidget(old);
-    if (old.value != widget.value &&
-        _ctrl.text != '${widget.value}') {
+    if (old.value != widget.value && _ctrl.text != '${widget.value}') {
       _ctrl.text = '${widget.value}';
     }
   }
@@ -629,18 +703,18 @@ class _MoneyFieldState extends State<_MoneyField> {
               textAlign: TextAlign.center,
               decoration: InputDecoration(
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 16),
-              onChanged: (v) =>
-                  widget.onChanged(int.tryParse(v) ?? 0),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              onChanged: (v) => widget.onChanged(int.tryParse(v) ?? 0),
             ),
             const SizedBox(height: 4),
-            Text(widget.label,
-                style: const TextStyle(
-                    color: Colors.grey, fontSize: 12)),
+            Text(
+              widget.label,
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
           ],
         ),
       ),
@@ -654,10 +728,11 @@ class _QuantityPicker extends StatelessWidget {
   final VoidCallback onDecrement;
   final VoidCallback onIncrement;
 
-  const _QuantityPicker(
-      {required this.value,
-      required this.onDecrement,
-      required this.onIncrement});
+  const _QuantityPicker({
+    required this.value,
+    required this.onDecrement,
+    required this.onIncrement,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -678,9 +753,10 @@ class _QuantityPicker extends StatelessWidget {
               onPressed: onDecrement,
             ),
           ),
-          Text('$value',
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 14)),
+          Text(
+            '$value',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
           SizedBox(
             width: 28,
             height: 32,
@@ -733,17 +809,20 @@ class _StyledDropdown<T> extends StatelessWidget {
                 value: value,
                 isExpanded: true,
                 style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w500),
+                  fontSize: 13,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w500,
+                ),
                 items: items
-                    .map((item) => DropdownMenuItem<T>(
-                          value: item,
-                          child: Text(
-                            labelBuilder(item),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ))
+                    .map(
+                      (item) => DropdownMenuItem<T>(
+                        value: item,
+                        child: Text(
+                          labelBuilder(item),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
                     .toList(),
                 onChanged: onChanged,
               ),
