@@ -41,12 +41,22 @@ class _DetailClassViewState extends State<DetailClassView> {
 
   // ── Navega a Hechizos ─────────────────────────────────────────────────────
   void _goToSpells(BuildContext context) {
+    // Capturamos dvm y subclassVM ANTES de navegar — aún están en scope
+    final dvm       = context.read<DetailClassViewModel>();
+    final subVM     = context.read<CharacterSubclassViewModel>();
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (ctx) =>
-              CharacterSpellViewModel(ctx.read<CharacterRepository>()),
+        builder: (_) => MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: dvm),
+            ChangeNotifierProvider.value(value: subVM),
+            ChangeNotifierProvider(
+              create: (ctx) =>
+                  CharacterSpellViewModel(ctx.read<CharacterRepository>()),
+            ),
+          ],
           child: const CharacterSpellSelectionView(),
         ),
       ),
@@ -55,17 +65,27 @@ class _DetailClassViewState extends State<DetailClassView> {
 
   // ── Navega a Inventario ───────────────────────────────────────────────────
   void _goToInventory(CreateCharacterViewModel vm) {
+    // Capturamos dvm y subclassVM ANTES de navegar — aún están en scope
+    final dvm   = context.read<DetailClassViewModel>();
+    final subVM = context.read<CharacterSubclassViewModel>();
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (ctx) {
-            final invVM = inv_vm.CharacterInventoryViewModel(
-              ctx.read<CharacterRepository>(),
-            );
-            invVM.updateFromBackground(vm.selectedBackground);
-            return invVM;
-          },
+        builder: (_) => MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: dvm),
+            ChangeNotifierProvider.value(value: subVM),
+            ChangeNotifierProvider(
+              create: (ctx) {
+                final invVM = inv_vm.CharacterInventoryViewModel(
+                  ctx.read<CharacterRepository>(),
+                );
+                invVM.updateFromBackground(vm.selectedBackground);
+                return invVM;
+              },
+            ),
+          ],
           child: const inv_view.CharacterInventoryView(),
         ),
       ),

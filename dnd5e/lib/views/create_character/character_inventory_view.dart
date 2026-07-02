@@ -3,6 +3,10 @@ import 'package:provider/provider.dart';
 import '../../view_models/character/character_view_model.dart';
 import '../../view_models/character/character_inventory_view_model.dart';
 import '../../views/create_character/charecter_sheet_view.dart';
+import '../../view_models/character/character_detail_class_view_model.dart';
+import '../../view_models/character/character_subclass_view_model.dart';
+import '../../view_models/character/character_spell_view_model.dart';
+import '../../views/create_character/charecter_sheet_view.dart';
 
 const _kRed = Color(0xFFE50914);
 
@@ -142,12 +146,34 @@ class _CharacterInventoryViewState extends State<CharacterInventoryView> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const CharacterSheetView(),
-                        ),
-                      ),
+                      onPressed: () {
+                        DetailClassViewModel? detailVM;
+                        CharacterSubclassViewModel? subclassVM;
+                        CharacterSpellViewModel? spellVM;
+
+                        try {
+                          detailVM = context.read<DetailClassViewModel>();
+                        } catch (_) {}
+                        try {
+                          subclassVM = context
+                              .read<CharacterSubclassViewModel>();
+                        } catch (_) {}
+                        try {
+                          spellVM = context.read<CharacterSpellViewModel>();
+                        } catch (_) {}
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CharacterSheetView(
+                              invVM: context
+                                  .read<CharacterInventoryViewModel>(),
+                              detailVM: detailVM,
+                              subclassVM: subclassVM,
+                              spellVM: spellVM,
+                            ),
+                          ),
+                        );
+                      },
                       icon: const Icon(Icons.picture_as_pdf, size: 22),
                       label: const Text(
                         'Generate Character Sheet',

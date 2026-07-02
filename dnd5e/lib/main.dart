@@ -8,7 +8,7 @@ import 'view_models/theme_view_model.dart';
 import 'view_models/character/character_view_model.dart';
 import 'view_models/spell/spells_view_model.dart';
 import 'view_models/bestiary/bestiary_view_model.dart';
-import 'view_models/tools/tools_view_model.dart';
+import 'view_models/tools/hp_tracker_view_model.dart';
 import 'views/main_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import './view_models/character/character_skill_view_model.dart';
@@ -54,8 +54,7 @@ void main() async{
         // Otros ViewModels
         ChangeNotifierProvider(create: (_) => SpellsViewModel()),
         ChangeNotifierProvider(create: (_) => BestiaryViewModel()),
-        ChangeNotifierProvider(create: (_) => ToolsViewModel()),
-      ],
+        ChangeNotifierProvider(create: (_) => HpTrackerViewModel()),],
       child: const MyApp(),
     ),
   );

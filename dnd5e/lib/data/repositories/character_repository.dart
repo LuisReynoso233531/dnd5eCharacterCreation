@@ -25,7 +25,7 @@ class CharacterRepository {
   // Obtener la lista de razas (Human, Elf, etc.)
   Future<List<Map<String, dynamic>>> getRaces() async {
     try {
-      final response = await _dio.get('/races/');
+      final response = await _dio.get('races/?document__slug=wotc-srd&limit=500');
       return List<Map<String, dynamic>>.from(response.data['results']);
     } on DioException catch (e) {
       throw Exception('Failed to load races: ${e.message}');

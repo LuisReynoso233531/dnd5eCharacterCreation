@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../data/repositories/character_repository.dart';
 import '../../view_models/character/character_view_model.dart';
 import '../../view_models/character/character_spell_view_model.dart';
+import '../../view_models/character/character_detail_class_view_model.dart';
+import '../../view_models/character/character_subclass_view_model.dart';
 import '../../view_models/character/character_inventory_view_model.dart'
     as inv_vm;
 import '../../views/create_character/character_inventory_view.dart' as inv_view;
@@ -65,23 +67,34 @@ class _CharacterSpellSelectionViewState
   }
 
   // ── Navega a Inventario ───────────────────────────────────────────────────
-  void _goToInventory(CreateCharacterViewModel vm) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (ctx) {
-            final invVM = inv_vm.CharacterInventoryViewModel(
-              ctx.read<CharacterRepository>(),
-            );
-            invVM.updateFromBackground(vm.selectedBackground);
-            return invVM;
-          },
-          child: const inv_view.CharacterInventoryView(),
-        ),
+void _goToInventory(CreateCharacterViewModel vm) {
+  final detailVM = context.read<DetailClassViewModel>();
+  final subclassVM = context.read<CharacterSubclassViewModel>();
+  final spellVM = context.read<CharacterSpellViewModel>();
+
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: detailVM),
+          ChangeNotifierProvider.value(value: subclassVM),
+          ChangeNotifierProvider.value(value: spellVM),
+          ChangeNotifierProvider(
+            create: (ctx) {
+              final invVM = inv_vm.CharacterInventoryViewModel(
+                ctx.read<CharacterRepository>(),
+              );
+              invVM.updateFromBackground(vm.selectedBackground);
+              return invVM;
+            },
+          ),
+        ],
+        child: const inv_view.CharacterInventoryView(),
       ),
-    );
-  }
+    ),
+  );
+}
 
   @override
   void dispose() {
