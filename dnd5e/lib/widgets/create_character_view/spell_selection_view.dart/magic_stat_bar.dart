@@ -31,8 +31,9 @@ Widget magicStatsBar(
             _statChip(Icons.shield, 'DC $saveDC', Colors.blue.shade200),
             _statChip(
               Icons.menu_book,
-              '${spellVM.totalCantripsSelected}/${info.cantripsKnown} cantrips  '
-              '${spellVM.totalNonCantripSelected}/$spellsKnown spells',
+              '${spellVM.totalCantripsTowardLimit}/${info.cantripsKnown} cantrips  '
+              '${spellVM.totalNonCantripsTowardLimit}/$spellsKnown spells'
+              '${spellVM.totalAutomaticSpells > 0 ? ' +${spellVM.totalAutomaticSpells} granted' : ''}',
               Colors.green.shade200,
             ),
           ],

@@ -1,110 +1,223 @@
 import 'package:flutter/material.dart';
-import '../../data/repositories/character_repository.dart';
 import '../../data/models/spell_model.dart';
+import '../../data/models/subclass_spell_grant.dart';
+import '../../data/repositories/character_repository.dart';
 
-// ─── ViewModel ───────────────────────────────────────────────────────────────
 class CharacterSpellViewModel extends ChangeNotifier {
-  final CharacterRepository _repository; 
+  final CharacterRepository _repository;
   CharacterSpellViewModel(this._repository);
 
-  // Estado de carga
   bool _isLoading = false;
   bool _isLoadingMore = false;
   String? _error;
   int _loadedPages = 0;
   int _totalPages = 0;
-  double get loadProgress => _totalPages == 0 ? 0 : _loadedPages / _totalPages;
 
+  double get loadProgress =>
+      _totalPages == 0 ? 0 : _loadedPages / _totalPages;
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
-  bool get isFullyLoaded => _loadedPages >= _totalPages && _totalPages > 0;
+  bool get isFullyLoaded =>
+      !_isLoading && !_isLoadingMore && (_totalPages == 0 || _loadedPages >= _totalPages);
   String? get error => _error;
-  // Hechizos disponibles (del API)
-  List<SpellModel> _allSpells = [];
-  List<SpellModel> get allSpells => _allSpells;
 
-  // Hechizos seleccionados por nivel (0 = cantrips)
-  // Key: spell level (0–9), Value: lista de slugs seleccionados
+  List<SpellModel> _allSpells = [];
+  List<SpellModel> get allSpells => List.unmodifiable(_allSpells);
+
+  // Hechizos elegidos manualmente. Estos sí consumen el límite de la clase.
   final Map<int, List<String>> _selectedSpells = {};
   Map<int, List<String>> get selectedSpells => _selectedSpells;
 
-  // Filtro de búsqueda
+  // Hechizos concedidos por subclase. No consumen el límite y no se eliminan.
+  final Map<int, List<String>> _automaticSpells = {};
+  Map<int, List<String>> get automaticSpells => _automaticSpells;
+
+  final Set<String> _automaticSpellNames = {};
+  Set<String> get automaticSpellNames => Set.unmodifiable(_automaticSpellNames);
+
+  // Automáticos que sí forman parte del número conocido de la tabla.
+  // Ejemplo: Mage Hand del Eldritch Trickster.
+  final Set<String> _automaticSpellsCountingAgainstLimit = {};
+
+  final List<String> _unresolvedAutomaticSpellNames = [];
+  List<String> get unresolvedAutomaticSpellNames =>
+      List.unmodifiable(_unresolvedAutomaticSpellNames);
+
   String _searchQuery = '';
-  int _filterLevel = -1; // -1 = todos
+  int _filterLevel = -1;
   String get searchQuery => _searchQuery;
   int get filterLevel => _filterLevel;
 
-  // Tab activo en la UI (nivel de hechizo)
   int _activeTab = 0;
   int get activeTab => _activeTab;
-  int get totalNonCantripSelected =>
-    _selectedSpells.entries
-        .where((e) => e.key > 0)
-        .fold(0, (sum, e) => sum + e.value.length);
-  
+
+  int get totalNonCantripSelected => _selectedSpells.entries
+      .where((entry) => entry.key > 0)
+      .fold(0, (sum, entry) => sum + entry.value.length);
+
   int get totalCantripsSelected => (_selectedSpells[0] ?? []).length;
-  bool canAddMoreSpells(int globalMax) => totalNonCantripSelected < globalMax;
 
-  // ─── Carga de hechizos ────────────────────────────────────────────────────
-Future<void> loadSpells(String dndClass) async {
-  if (_allSpells.isNotEmpty) return; // Ya cargados
-  
-  _isLoading = true;
-  _error = null;
-  notifyListeners();
+  int get totalAutomaticSpells =>
+      _automaticSpells.values.fold(0, (sum, list) => sum + list.length);
 
-  try {
-    // 1. Cargar página 1 inmediatamente pasando la clase
-    final firstPage = await _repository.getSpells(dndClass, page: 1);
-    _allSpells = firstPage.map((j) => SpellModel.fromJson(j)).toList();
-    _loadedPages = 1;
-    _isLoading = false;
-    notifyListeners(); // La UI ya muestra la primera tanda rápidamente
+  int get automaticCantripsCountingAgainstLimit =>
+      (_automaticSpells[0] ?? const [])
+          .where(_automaticSpellsCountingAgainstLimit.contains)
+          .length;
 
-    // 2. Obtener total de páginas filtradas por dndClass
-    _totalPages = await _repository.getSpellsPageCount(dndClass);
-    
-    if (_totalPages <= 1) return;
+  int get automaticNonCantripsCountingAgainstLimit => _automaticSpells.entries
+      .where((entry) => entry.key > 0)
+      .expand((entry) => entry.value)
+      .where(_automaticSpellsCountingAgainstLimit.contains)
+      .length;
 
-    // 3. Cargar el resto en paralelo por batches de 5
-    _isLoadingMore = true;
+  int get totalCantripsTowardLimit =>
+      totalCantripsSelected + automaticCantripsCountingAgainstLimit;
+
+  int get totalNonCantripsTowardLimit =>
+      totalNonCantripSelected + automaticNonCantripsCountingAgainstLimit;
+
+  bool canAddMoreSpells(int globalMax) =>
+      totalNonCantripsTowardLimit < globalMax;
+
+  Future<void> loadSpells(
+    String dndClass, {
+    List<SubclassSpellGrant> automaticGrants = const [],
+    String? preferredDocumentSlug,
+  }) async {
+    if (_allSpells.isEmpty) {
+      await _loadClassSpells(dndClass);
+    }
+
+    await setAutomaticSpells(
+      automaticGrants,
+      preferredDocumentSlug: preferredDocumentSlug,
+    );
+  }
+
+  Future<void> _loadClassSpells(String dndClass) async {
+    _isLoading = true;
+    _error = null;
     notifyListeners();
 
-    // Genera el listado restante, ej: si total son 3 páginas, genera [2, 3]
-    final remainingPages = List.generate(_totalPages - 1, (i) => i + 2); 
+    try {
+      final firstPage = await _repository.getSpells(dndClass, page: 1);
+      _allSpells = firstPage.map((json) => SpellModel.fromJson(json)).toList();
+      _loadedPages = firstPage.isEmpty ? 0 : 1;
+      _isLoading = false;
+      notifyListeners();
 
-    const batchSize = 5;
-    for (int i = 0; i < remainingPages.length; i += batchSize) {
-      final batch = remainingPages.skip(i).take(batchSize).toList();
+      _totalPages = await _repository.getSpellsPageCount(dndClass);
+      if (_totalPages <= 1) return;
 
-      // Las páginas del batch se cargan en paralelo pasando la clase obligatoria
-      final results = await Future.wait(
-        batch.map((page) => _repository.getSpells(dndClass, page: page)),
+      _isLoadingMore = true;
+      notifyListeners();
+
+      final remainingPages = List.generate(
+        _totalPages - 1,
+        (index) => index + 2,
       );
 
-      for (final pageData in results) {
-        _allSpells.addAll(pageData.map((j) => SpellModel.fromJson(j)));
-        _loadedPages++;
+      const batchSize = 5;
+      for (int i = 0; i < remainingPages.length; i += batchSize) {
+        final batch = remainingPages.skip(i).take(batchSize).toList();
+        final results = await Future.wait(
+          batch.map((page) => _repository.getSpells(dndClass, page: page)),
+        );
+
+        for (final pageData in results) {
+          _allSpells.addAll(pageData.map((json) => SpellModel.fromJson(json)));
+          _loadedPages++;
+        }
+
+        _sortSpells();
+        notifyListeners();
+      }
+    } catch (e) {
+      _error = 'Error al cargar hechizos: $e';
+      notifyListeners();
+    } finally {
+      _isLoading = false;
+      _isLoadingMore = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> setAutomaticSpells(
+    List<SubclassSpellGrant> grants, {
+    String? preferredDocumentSlug,
+  }) async {
+    _automaticSpells.clear();
+    _automaticSpellNames.clear();
+    _automaticSpellsCountingAgainstLimit.clear();
+    _unresolvedAutomaticSpellNames.clear();
+
+    if (grants.isEmpty) {
+      notifyListeners();
+      return;
+    }
+
+    final uniqueGrants = <String, SubclassSpellGrant>{};
+    for (final grant in grants) {
+      final key = _normalizeName(grant.spellName);
+      if (key.isNotEmpty) uniqueGrants.putIfAbsent(key, () => grant);
+    }
+
+    _automaticSpellNames.addAll(uniqueGrants.keys);
+
+    final loadedNames = {
+      for (final spell in _allSpells) _normalizeName(spell.name),
+    };
+    final missingNames = uniqueGrants.entries
+        .where((entry) => !loadedNames.contains(entry.key))
+        .map((entry) => entry.value.spellName)
+        .toList();
+
+    if (missingNames.isNotEmpty) {
+      final fetched = await _repository.getSpellsByNames(
+        missingNames,
+        preferredDocumentSlug: preferredDocumentSlug,
+      );
+
+      final existingSlugs = _allSpells.map((spell) => spell.slug).toSet();
+      for (final json in fetched) {
+        final spell = SpellModel.fromJson(json);
+        if (spell.slug.isNotEmpty && existingSlugs.add(spell.slug)) {
+          _allSpells.add(spell);
+        }
+      }
+    }
+
+    final modelsByName = <String, SpellModel>{};
+    for (final spell in _allSpells) {
+      modelsByName.putIfAbsent(_normalizeName(spell.name), () => spell);
+    }
+
+    for (final entry in uniqueGrants.entries) {
+      final spell = modelsByName[entry.key];
+      if (spell == null) {
+        _unresolvedAutomaticSpellNames.add(entry.value.spellName);
+        continue;
       }
 
-      // Ordenar y notificar después de cada batch terminado
-      _allSpells.sort((a, b) {
-        final lvl = a.levelInt.compareTo(b.levelInt);
-        return lvl != 0 ? lvl : a.name.compareTo(b.name);
-      });
+      final slugs = _automaticSpells[spell.levelInt] ??= [];
+      if (!slugs.contains(spell.slug)) slugs.add(spell.slug);
 
-      notifyListeners(); // Actualización progresiva en la UI
+      if (entry.value.countsAgainstLimit) {
+        _automaticSpellsCountingAgainstLimit.add(spell.slug);
+      }
+
+      // Si ya se había elegido manualmente, deja de consumir cupo.
+      for (final selected in _selectedSpells.values) {
+        selected.remove(spell.slug);
+      }
     }
-  } catch (e) {
-    _error = 'Error al cargar hechizos: $e';
-    notifyListeners();
-  } finally {
-    _isLoadingMore = false;
+
+    _selectedSpells.removeWhere((_, slugs) => slugs.isEmpty);
+    _sortSpells();
     notifyListeners();
   }
-}
-  // ─── Parser de tabla de clase ─────────────────────────────────────────────
-  /// Extrae SpellcastingInfo para un nivel dado de la tabla de la clase.
+
   SpellcastingInfo? parseSpellcastingInfo(
     String? table,
     String slug,
@@ -114,81 +227,77 @@ Future<void> loadSpells(String dndClass) async {
 
     final lines = table
         .split('\n')
-        .where((l) => l.trim().startsWith('|'))
+        .where((line) => line.trim().startsWith('|'))
         .toList();
     if (lines.length < 2) return null;
 
     final headers = lines[0]
         .split('|')
-        .map((h) => h.trim())
-        .where((h) => h.isNotEmpty)
+        .map((header) => header.trim())
+        .where((header) => header.isNotEmpty)
         .toList();
 
-    // Buscar fila del nivel actual
-    final levelStr = _levelOrdinal(level);
+    final levelString = _levelOrdinal(level);
     Map<String, String>? rowData;
+
     for (final line in lines.skip(2)) {
-      final cols = line
+      final columns = line
           .split('|')
-          .map((c) => c.trim())
-          .where((c) => c.isNotEmpty)
+          .map((column) => column.trim())
+          .where((column) => column.isNotEmpty)
           .toList();
-      if (cols.isEmpty) continue;
-      final rowLevel = cols[0].toLowerCase().trim();
-      if (rowLevel == levelStr.toLowerCase() || rowLevel == '$level') {
+      if (columns.isEmpty) continue;
+
+      final rowLevel = columns[0].toLowerCase().trim();
+      if (rowLevel == levelString.toLowerCase() || rowLevel == '$level') {
         rowData = {
-          for (int i = 0; i < headers.length && i < cols.length; i++)
-            headers[i]: cols[i],
+          for (int i = 0; i < headers.length && i < columns.length; i++)
+            headers[i]: columns[i],
         };
         break;
       }
     }
+
     if (rowData == null) return null;
 
-    int parseVal(String? v) => int.tryParse(v?.replaceAll('+', '') ?? '') ?? 0;
+    int parseValue(String? value) =>
+        int.tryParse(value?.replaceAll('+', '') ?? '') ?? 0;
 
-    // Espacios de conjuro (niveles 1–9)
     final slots = List.filled(9, 0);
     for (int i = 1; i <= 9; i++) {
       final key = _levelOrdinal(i);
       if (rowData.containsKey(key)) {
-        slots[i - 1] = parseVal(rowData[key]);
+        slots[i - 1] = parseValue(rowData[key]);
       }
     }
 
-    // Warlock: sistema especial
     if (slug == 'warlock') {
-      final wSlots = parseVal(rowData['Spell Slots']);
-      final wLevelStr = rowData['Slot Level'] ?? '1st';
-      final wLevel = _ordinalToInt(wLevelStr);
+      final warlockSlots = parseValue(rowData['Spell Slots']);
+      final warlockLevel = _ordinalToInt(rowData['Slot Level'] ?? '1st');
       return SpellcastingInfo(
-        spellsKnown: parseVal(rowData['Spells Known']),
-        cantripsKnown: parseVal(rowData['Cantrips Known']),
+        spellsKnown: parseValue(rowData['Spells Known']),
+        cantripsKnown: parseValue(rowData['Cantrips Known']),
         slotsPerLevel: slots,
-        warlockSlots: wSlots,
-        warlockSlotLevel: wLevel,
+        warlockSlots: warlockSlots,
+        warlockSlotLevel: warlockLevel,
       );
     }
 
     return SpellcastingInfo(
       spellsKnown: rowData.containsKey('Spells Known')
-          ? parseVal(rowData['Spells Known'])
+          ? parseValue(rowData['Spells Known'])
           : null,
-      cantripsKnown: parseVal(rowData['Cantrips Known']),
+      cantripsKnown: parseValue(rowData['Cantrips Known']),
       slotsPerLevel: slots,
     );
   }
 
-  // ─── Cuántos hechizos puede aprender (fórmula dinámica) ──────────────────
-  /// Para clases con fórmula basada en stats.
-  /// [statMod]: modificador de la característica de conjuro.
   int dynamicSpellsKnown(String slug, int level, int statMod) {
     switch (slug) {
       case 'cleric':
       case 'druid':
         return level + statMod;
       case 'wizard':
-        // 6 iniciales + (nivel + Int) al nivel 1, +2 por nivel adicional
         return 6 + level + statMod + (level > 1 ? (level - 1) * 2 : 0);
       case 'paladin':
         return (level / 2).floor() + statMod;
@@ -197,41 +306,38 @@ Future<void> loadSpells(String dndClass) async {
     }
   }
 
-  /// Si la clase usa fórmula dinámica (no hardcoded de la tabla).
   bool usesDynamicFormula(String slug) =>
       ['cleric', 'druid', 'wizard', 'paladin'].contains(slug);
 
-  /// Si la clase tiene hechizos en absoluto.
   bool isSpellcaster(String slug) => [
-    'bard', 'cleric', 'druid', 'paladin', 'ranger',
-    'sorcerer', 'warlock', 'wizard',
-    // Subclases (rogue arcane trickster, fighter eldritch knight)
-    // se manejan con el slug 'rogue' y 'fighter' + archetype check
+    'bard',
+    'cleric',
+    'druid',
+    'paladin',
+    'ranger',
+    'sorcerer',
+    'warlock',
+    'wizard',
   ].contains(slug);
 
-  // ─── Hechizos filtrados para la UI ────────────────────────────────────────
   List<SpellModel> filteredSpells(String classSlug, int maxLevel) {
-    return _allSpells.where((s) {
-      // Filtrar por clase
+    return _allSpells.where((spell) {
+      final automatic = isAutomaticSpell(spell.slug);
       final classMatch =
-          s.dndClass.toLowerCase().contains(classSlug.toLowerCase()) ||
-          _classAliases(
-            classSlug,
-          ).any((alias) => s.dndClass.toLowerCase().contains(alias));
-      if (!classMatch) return false;
+          spell.dndClass.toLowerCase().contains(classSlug.toLowerCase()) ||
+          _classAliases(classSlug).any(
+            (alias) => spell.dndClass.toLowerCase().contains(alias),
+          );
 
-      // Filtrar por nivel máximo permitido
-      if (s.levelInt > maxLevel) return false;
+      if (!automatic && !classMatch) return false;
+      if (spell.levelInt > maxLevel) return false;
 
-      // Filtrar por búsqueda
       if (_searchQuery.isNotEmpty &&
-          !s.name.toLowerCase().contains(_searchQuery.toLowerCase())) {
+          !spell.name.toLowerCase().contains(_searchQuery.toLowerCase())) {
         return false;
       }
 
-      // Filtrar por nivel seleccionado
-      if (_filterLevel >= 0 && s.levelInt != _filterLevel) return false;
-
+      if (_filterLevel >= 0 && spell.levelInt != _filterLevel) return false;
       return true;
     }).toList();
   }
@@ -246,57 +352,77 @@ Future<void> loadSpells(String dndClass) async {
       'sorcerer': ['sorcerer'],
       'warlock': ['warlock'],
       'wizard': ['wizard'],
-      'rogue': ['wizard', 'sorcerer'], // arcane trickster
-      'fighter': ['wizard'], // eldritch knight
+      'rogue': ['wizard', 'sorcerer'],
+      'fighter': ['wizard'],
     };
     return aliases[slug] ?? [slug];
   }
 
-  // ─── Gestión de selección ──────────────────────────────────────────────────
   void toggleSpell(String slug, int spellLevel, int globalMax) {
-  // Cantrips tienen su propio sistema
-  assert(spellLevel > 0, 'Use toggleCantrip for cantrips');
+    assert(spellLevel > 0, 'Use toggleCantrip for cantrips');
+    if (isAutomaticSpell(slug)) return;
 
-  final list = _selectedSpells[spellLevel] ??= [];
+    final list = _selectedSpells[spellLevel] ??= [];
+    if (list.contains(slug)) {
+      list.remove(slug);
+    } else if (totalNonCantripsTowardLimit < globalMax) {
+      list.add(slug);
+    }
 
-  if (list.contains(slug)) {
-    // Siempre se puede deseleccionar
-    list.remove(slug);
-  } else {
-    // Solo añadir si no se superó el pool global
-    if (totalNonCantripSelected >= globalMax) return;
-    list.add(slug);
+    if (list.isEmpty) _selectedSpells.remove(spellLevel);
+    notifyListeners();
   }
-  notifyListeners();
-}
 
   void toggleCantrip(String slug, int maxCantrips) {
-  final list = _selectedSpells[0] ??= [];
-  if (list.contains(slug)) {
-    list.remove(slug);
-  } else if (list.length < maxCantrips) {
-    list.add(slug);
+    if (isAutomaticSpell(slug)) return;
+
+    final list = _selectedSpells[0] ??= [];
+    if (list.contains(slug)) {
+      list.remove(slug);
+    } else if (totalCantripsTowardLimit < maxCantrips) {
+      list.add(slug);
+    }
+
+    if (list.isEmpty) _selectedSpells.remove(0);
+    notifyListeners();
   }
-  notifyListeners();
-}
 
-bool isSelected(String slug, int spellLevel) =>
-    (_selectedSpells[spellLevel] ?? []).contains(slug);
+  bool isAutomaticSpell(String slug) =>
+      _automaticSpells.values.any((slugs) => slugs.contains(slug));
 
-  int totalSelectedAcrossAllLevels() =>
-      _selectedSpells.values.fold(0, (sum, list) => sum + list.length);
+  bool isSelected(String slug, int spellLevel) =>
+      (_selectedSpells[spellLevel] ?? []).contains(slug) ||
+      (_automaticSpells[spellLevel] ?? []).contains(slug);
 
-int selectedCountForLevel(int level) =>
-    (_selectedSpells[level] ?? []).length;
+  int totalSelectedAcrossAllLevels() {
+    final slugs = <String>{};
+    slugs.addAll(_selectedSpells.values.expand((list) => list));
+    slugs.addAll(_automaticSpells.values.expand((list) => list));
+    return slugs.length;
+  }
 
-List<SpellModel> getSelectedSpellModels() {
-  final slugs = _selectedSpells.values.expand((l) => l).toSet();
-  return _allSpells.where((s) => slugs.contains(s.slug)).toList();
-}
+  int selectedCountForLevel(int level) {
+    final slugs = <String>{
+      ...?_selectedSpells[level],
+      ...?_automaticSpells[level],
+    };
+    return slugs.length;
+  }
 
-  // ─── UI state ─────────────────────────────────────────────────────────────
-  void setSearchQuery(String q) {
-    _searchQuery = q;
+  List<SpellModel> getAutomaticSpellModels() {
+    final slugs = _automaticSpells.values.expand((list) => list).toSet();
+    return _allSpells.where((spell) => slugs.contains(spell.slug)).toList();
+  }
+
+  List<SpellModel> getSelectedSpellModels() {
+    final slugs = <String>{};
+    slugs.addAll(_selectedSpells.values.expand((list) => list));
+    slugs.addAll(_automaticSpells.values.expand((list) => list));
+    return _allSpells.where((spell) => slugs.contains(spell.slug)).toList();
+  }
+
+  void setSearchQuery(String query) {
+    _searchQuery = query;
     notifyListeners();
   }
 
@@ -312,15 +438,33 @@ List<SpellModel> getSelectedSpellModels() {
 
   void reset() {
     _selectedSpells.clear();
+    _automaticSpells.clear();
+    _automaticSpellNames.clear();
+    _automaticSpellsCountingAgainstLimit.clear();
+    _unresolvedAutomaticSpellNames.clear();
     _searchQuery = '';
     _filterLevel = -1;
     _activeTab = 0;
     notifyListeners();
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
-  String _levelOrdinal(int n) {
-    switch (n) {
+  void _sortSpells() {
+    _allSpells.sort((a, b) {
+      final levelComparison = a.levelInt.compareTo(b.levelInt);
+      return levelComparison != 0
+          ? levelComparison
+          : a.name.compareTo(b.name);
+    });
+  }
+
+  String _normalizeName(String value) => value
+      .toLowerCase()
+      .replaceAll(RegExp(r'[*_`]'), '')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+
+  String _levelOrdinal(int number) {
+    switch (number) {
       case 1:
         return '1st';
       case 2:
@@ -328,12 +472,12 @@ List<SpellModel> getSelectedSpellModels() {
       case 3:
         return '3rd';
       default:
-        return '${n}th';
+        return '${number}th';
     }
   }
 
-  int _ordinalToInt(String s) {
-    final n = int.tryParse(s.replaceAll(RegExp(r'[^0-9]'), ''));
-    return n ?? 1;
+  int _ordinalToInt(String value) {
+    final number = int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), ''));
+    return number ?? 1;
   }
 }

@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../data/repositories/character_repository.dart';
-import '../../view_models/character/character_view_model.dart';
-import '../../view_models/character/character_spell_view_model.dart';
+import '../../utils/app_theme.dart';
+import '../../utils/spellcasting_source.dart';
 import '../../view_models/character/character_detail_class_view_model.dart';
-import '../../view_models/character/character_subclass_view_model.dart';
 import '../../view_models/character/character_inventory_view_model.dart'
     as inv_vm;
+import '../../view_models/character/character_spell_view_model.dart';
+import '../../view_models/character/character_subclass_view_model.dart';
+import '../../view_models/character/character_view_model.dart';
 import '../../views/create_character/character_inventory_view.dart' as inv_view;
 import '../../widgets/create_character_view/spell_selection_view.dart/magic_stat_bar.dart';
 import '../../widgets/create_character_view/spell_selection_view.dart/spell_level_tab.dart';
-import '../../../utils/app_theme.dart';
 
 class CharacterSpellSelectionView extends StatefulWidget {
   const CharacterSpellSelectionView({super.key});
+
   @override
   State<CharacterSpellSelectionView> createState() =>
       _CharacterSpellSelectionViewState();
@@ -24,77 +27,116 @@ class _CharacterSpellSelectionViewState
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _searchController = TextEditingController();
-  List<int> _availableLevels = [];
+  final List<int> _availableLevels = [];
+
+  SpellcastingSource? _source;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
+
       final spellVM = context.read<CharacterSpellViewModel>();
       final characterVM = context.read<CreateCharacterViewModel>();
-      final dndClass = characterVM.selectedClass?.name ?? '';
-      spellVM.loadSpells(dndClass);
-      _setupTabs();
+      final detailVM = context.read<DetailClassViewModel>();
+      final subclassVM = context.read<CharacterSubclassViewModel>();
+      final characterClass = characterVM.selectedClass;
+
+      if (characterClass == null) return;
+
+      final source = SpellcastingSourceResolver.resolve(
+        characterClass: characterClass,
+        characterLevel: characterVM.level,
+        archetype: detailVM.selectedArchetype,
+      );
+
+      if (source == null) return;
+      _source = source;
+
+      await spellVM.loadSpells(
+        source.apiClassName,
+        automaticGrants: subclassVM.grantedSpellsForLevel(characterVM.level),
+        preferredDocumentSlug:
+            detailVM.selectedArchetype?['document__slug']?.toString(),
+      );
+
+      if (!mounted) return;
+      _setupTabs(source);
     });
   }
 
-  void _setupTabs() {
+  void _setupTabs(SpellcastingSource source) {
     final vm = context.read<CreateCharacterViewModel>();
     final spellVM = context.read<CharacterSpellViewModel>();
-    final cls = vm.selectedClass;
-    if (cls == null) return;
 
-    final info = spellVM.parseSpellcastingInfo(cls.table, cls.slug, vm.level);
+    final info = spellVM.parseSpellcastingInfo(
+      source.table,
+      source.rulesSlug,
+      vm.level,
+    );
     if (info == null) return;
 
     final levels = <int>[];
+
     if (info.cantripsKnown > 0) levels.add(0);
-    for (int i = 0; i < 9; i++) {
+
+    for (int i = 0; i < info.slotsPerLevel.length; i++) {
       if (info.slotsPerLevel[i] > 0) levels.add(i + 1);
     }
-    if (cls.slug == 'warlock' && info.warlockSlotLevel > 0) {
+
+    if (source.rulesSlug == 'warlock' && info.warlockSlotLevel > 0) {
       for (int i = 1; i <= info.warlockSlotLevel; i++) {
         if (!levels.contains(i)) levels.add(i);
       }
     }
+
+    for (final spell in spellVM.getAutomaticSpellModels()) {
+      if (!levels.contains(spell.levelInt)) {
+        levels.add(spell.levelInt);
+      }
+    }
+
     levels.sort();
+    if (levels.isEmpty) return;
 
     setState(() {
-      _availableLevels = levels;
+      _availableLevels
+        ..clear()
+        ..addAll(levels);
       _tabController = TabController(length: levels.length, vsync: this);
     });
   }
 
-  // ── Navega a Inventario ───────────────────────────────────────────────────
-void _goToInventory(CreateCharacterViewModel vm) {
-  final detailVM = context.read<DetailClassViewModel>();
-  final subclassVM = context.read<CharacterSubclassViewModel>();
-  final spellVM = context.read<CharacterSpellViewModel>();
+  void _goToInventory(CreateCharacterViewModel vm) {
+    final detailVM = context.read<DetailClassViewModel>();
+    final subclassVM = context.read<CharacterSubclassViewModel>();
+    final spellVM = context.read<CharacterSpellViewModel>();
 
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => MultiProvider(
-        providers: [
-          ChangeNotifierProvider.value(value: detailVM),
-          ChangeNotifierProvider.value(value: subclassVM),
-          ChangeNotifierProvider.value(value: spellVM),
-          ChangeNotifierProvider(
-            create: (ctx) {
-              final invVM = inv_vm.CharacterInventoryViewModel(
-                ctx.read<CharacterRepository>(),
-              );
-              invVM.updateFromBackground(vm.selectedBackground);
-              return invVM;
-            },
-          ),
-        ],
-        child: const inv_view.CharacterInventoryView(),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: detailVM),
+            ChangeNotifierProvider.value(value: subclassVM),
+            ChangeNotifierProvider.value(value: spellVM),
+            ChangeNotifierProvider(
+              create: (ctx) {
+                final invVM = inv_vm.CharacterInventoryViewModel(
+                  ctx.read<CharacterRepository>(),
+                );
+                invVM.updateFromBackground(vm.selectedBackground);
+                return invVM;
+              },
+            ),
+          ],
+          child: const inv_view.CharacterInventoryView(),
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   @override
   void dispose() {
@@ -107,9 +149,19 @@ void _goToInventory(CreateCharacterViewModel vm) {
   Widget build(BuildContext context) {
     final vm = context.watch<CreateCharacterViewModel>();
     final spellVM = context.watch<CharacterSpellViewModel>();
-    final cls = vm.selectedClass;
+    final detailVM = context.watch<DetailClassViewModel>();
+    final characterClass = vm.selectedClass;
 
-    if (cls == null || !spellVM.isSpellcaster(cls.slug)) {
+    final source = characterClass == null
+        ? null
+        : _source ??
+              SpellcastingSourceResolver.resolve(
+                characterClass: characterClass,
+                characterLevel: vm.level,
+                archetype: detailVM.selectedArchetype,
+              );
+
+    if (characterClass == null || source == null) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Spells'),
@@ -117,16 +169,20 @@ void _goToInventory(CreateCharacterViewModel vm) {
         ),
         body: const Center(
           child: Text(
-            'This class does not have spellcasting.',
+            'This class or subclass does not have spellcasting at this level.',
             style: TextStyle(color: Colors.grey),
           ),
         ),
       );
     }
 
-    final info = spellVM.parseSpellcastingInfo(cls.table, cls.slug, vm.level);
+    final info = spellVM.parseSpellcastingInfo(
+      source.table,
+      source.rulesSlug,
+      vm.level,
+    );
 
-    if (info == null || !info.hasSpells) {
+    if (info == null || !source.hasSpellSelectionAtLevel(vm.level)) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Spells'),
@@ -134,54 +190,57 @@ void _goToInventory(CreateCharacterViewModel vm) {
         ),
         body: const Center(
           child: Text(
-            'No spell slots available at this level.',
+            'No spells are available at this level.',
             style: TextStyle(color: Colors.grey),
           ),
         ),
       );
     }
 
-    final spellAbility = cls.spellcasting_ability;
+    final spellAbility = source.ability;
     final spellMod = vm.getModifier(spellAbility);
     final profBonus = CreateCharacterViewModel.proficiencyBonus(vm.level);
     final spellAttackBonus = profBonus + spellMod;
     final saveDC = 8 + profBonus + spellMod;
 
     int spellsKnown;
-    if (spellVM.usesDynamicFormula(cls.slug)) {
-      spellsKnown = spellVM.dynamicSpellsKnown(cls.slug, vm.level, spellMod);
+    if (spellVM.usesDynamicFormula(source.rulesSlug)) {
+      spellsKnown = spellVM.dynamicSpellsKnown(
+        source.rulesSlug,
+        vm.level,
+        spellMod,
+      );
       if (spellsKnown < 1) spellsKnown = 1;
     } else {
       spellsKnown = info.spellsKnown ?? 0;
     }
 
     if (_availableLevels.isEmpty) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Spell Selection: '
-          '${cls.slug[0].toUpperCase()}${cls.slug.substring(1)} '
-          'Lv${vm.level}',
-        ),
+        title: Text('Spell Selection: ${source.displayName} Lv${vm.level}'),
         backgroundColor: AppTheme.primaryRed,
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
           indicatorColor: Colors.white,
-          tabs: _availableLevels.map((lvl) {
-            final sel = lvl == 0
-                ? spellVM.totalCantripsSelected
-                : spellVM.totalNonCantripSelected;
-            final max = lvl == 0 ? info.cantripsKnown : spellsKnown;
+          tabs: _availableLevels.map((level) {
+            final selected = level == 0
+                ? spellVM.totalCantripsTowardLimit
+                : spellVM.totalNonCantripsTowardLimit;
+            final maximum = level == 0 ? info.cantripsKnown : spellsKnown;
+
             return Tab(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    lvl == 0 ? 'Cantrips' : 'Level $lvl',
+                    level == 0 ? 'Cantrips' : 'Level $level',
                     style: const TextStyle(fontSize: 14, color: Colors.white),
                   ),
                   Container(
@@ -190,13 +249,13 @@ void _goToInventory(CreateCharacterViewModel vm) {
                       vertical: 1,
                     ),
                     decoration: BoxDecoration(
-                      color: sel >= max
+                      color: selected >= maximum
                           ? Colors.red.withOpacity(0.5)
                           : Colors.white.withOpacity(0.25),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      '$sel/$max',
+                      '$selected/$maximum',
                       style: const TextStyle(
                         fontSize: 10,
                         color: Colors.white,
@@ -210,15 +269,11 @@ void _goToInventory(CreateCharacterViewModel vm) {
           }).toList(),
         ),
       ),
-
-      // ── Bottom bar con resumen + botón de inventario ──────────────────────
       bottomNavigationBar: _buildBottomBar(vm, spellVM),
-
       body: Column(
         children: [
-          // ── Panel de stats mágicos ─────────────────────────────────────
           magicStatsBar(
-            cls.slug,
+            source.rulesSlug,
             spellAbility,
             spellMod,
             spellAttackBonus,
@@ -228,8 +283,20 @@ void _goToInventory(CreateCharacterViewModel vm) {
             info,
             spellVM,
           ),
-
-          // ── Búsqueda ──────────────────────────────────────────────────
+          if (spellVM.unresolvedAutomaticSpellNames.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              color: Colors.amber.shade100,
+              child: Text(
+                'Could not find these granted spells in the API: '
+                '${spellVM.unresolvedAutomaticSpellNames.join(', ')}',
+                style: TextStyle(
+                  color: Colors.amber.shade900,
+                  fontSize: 11,
+                ),
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
             child: TextField(
@@ -255,8 +322,6 @@ void _goToInventory(CreateCharacterViewModel vm) {
               onChanged: spellVM.setSearchQuery,
             ),
           ),
-
-          // ── Lista de hechizos por tab ──────────────────────────────────
           Expanded(
             child: spellVM.isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -265,7 +330,7 @@ void _goToInventory(CreateCharacterViewModel vm) {
                     children: _availableLevels.map((spellLevel) {
                       return SpellLevelTab(
                         spellLevel: spellLevel,
-                        classSlug: cls.slug,
+                        classSlug: source.spellListSlug,
                         globalSpellsMax: spellsKnown,
                         cantripsMax: info.cantripsKnown,
                         spellVM: spellVM,
@@ -278,7 +343,6 @@ void _goToInventory(CreateCharacterViewModel vm) {
     );
   }
 
-  // ── Bottom bar — DENTRO de la clase para tener acceso a context y métodos──
   Widget _buildBottomBar(
     CreateCharacterViewModel vm,
     CharacterSpellViewModel spellVM,
@@ -289,12 +353,12 @@ void _goToInventory(CreateCharacterViewModel vm) {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Resumen compacto de selecciones
             Text(
-              '${spellVM.totalCantripsSelected} cantrip'
-              '${spellVM.totalCantripsSelected != 1 ? 's' : ''}  ·  '
-              '${spellVM.totalNonCantripSelected} spell'
-              '${spellVM.totalNonCantripSelected != 1 ? 's' : ''} selected',
+              '${spellVM.totalCantripsTowardLimit} cantrip'
+              '${spellVM.totalCantripsTowardLimit != 1 ? 's' : ''}  ·  '
+              '${spellVM.totalNonCantripsTowardLimit} spell'
+              '${spellVM.totalNonCantripsTowardLimit != 1 ? 's' : ''} selected'
+              '${spellVM.totalAutomaticSpells > 0 ? '  ·  ${spellVM.totalAutomaticSpells} granted' : ''}',
               style: const TextStyle(color: Colors.grey, fontSize: 12),
               textAlign: TextAlign.center,
             ),
@@ -310,7 +374,6 @@ void _goToInventory(CreateCharacterViewModel vm) {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                // ✅ Llama al método del State — tiene acceso a context
                 onPressed: () => _goToInventory(vm),
                 icon: const Icon(Icons.backpack, size: 20),
                 label: const Text(

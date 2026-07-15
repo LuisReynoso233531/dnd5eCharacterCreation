@@ -6,15 +6,17 @@ class SpellCard extends StatelessWidget {
   final SpellModel spell;
   final bool isSelected;
   final bool canAdd;
+  final bool isAutomatic;
   final VoidCallback? onTap;
   final bool isCompendiumMode;
 
   const SpellCard({
     super.key,
     required this.spell,
-    this.isSelected = false, 
-    this.canAdd = false, 
-    this.onTap, 
+    this.isSelected = false,
+    this.canAdd = false,
+    this.isAutomatic = false,
+    this.onTap,
     this.isCompendiumMode =
         false,
   });
@@ -24,7 +26,9 @@ class SpellCard extends StatelessWidget {
     final color = schoolColor(spell.school);
 
     return GestureDetector(
-      onTap: (!isCompendiumMode && (isSelected || canAdd)) ? onTap : null,
+      onTap: (!isCompendiumMode && !isAutomatic && (isSelected || canAdd))
+          ? onTap
+          : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
         margin: const EdgeInsets.only(bottom: 8),
@@ -50,7 +54,11 @@ class SpellCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Icon(
-                    isSelected ? Icons.check : Icons.auto_fix_high,
+                    isAutomatic
+                        ? Icons.lock
+                        : isSelected
+                        ? Icons.check
+                        : Icons.auto_fix_high,
                     size: 16,
                     color: isSelected ? Colors.white : color,
                   ),
@@ -69,6 +77,7 @@ class SpellCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (isAutomatic) _badge('GRANTED', Colors.purple),
                 if (spell.concentration) _badge('C', Colors.orange),
                 const SizedBox(width: 2),
                 if (spell.ritual) _badge('R', Colors.teal),
@@ -86,6 +95,28 @@ class SpellCard extends StatelessWidget {
             ),
             trailing: isCompendiumMode
                 ? null
+                : isAutomatic
+                ? Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.purple.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: Colors.purple.withOpacity(0.35),
+                      ),
+                    ),
+                    child: const Text(
+                      'Granted',
+                      style: TextStyle(
+                        color: Colors.purple,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  )
                 : SizedBox(
                     width: 72,
                     child: ElevatedButton(

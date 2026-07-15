@@ -30,8 +30,8 @@ class SpellLevelTab extends StatelessWidget {
 
     // Contadores según el tipo
     final int selectedCount = isCantrip
-        ? spellVM.totalCantripsSelected
-        : spellVM.totalNonCantripSelected;
+        ? spellVM.totalCantripsTowardLimit
+        : spellVM.totalNonCantripsTowardLimit;
     final int maxAllowed = isCantrip ? cantripsMax : globalSpellsMax;
     final int remaining = maxAllowed - selectedCount;
 
@@ -111,25 +111,28 @@ class SpellLevelTab extends StatelessWidget {
             itemCount: levelSpells.length,
             itemBuilder: (context, i) {
               final spell = levelSpells[i];
+              final isAutomatic = spellVM.isAutomaticSpell(spell.slug);
               final isSel = spellVM.isSelected(spell.slug, spellLevel);
-              // canAdd: solo si hay espacio en el pool correspondiente
-              final canAdd = !isSel && remaining > 0;
+              final canAdd = !isAutomatic && !isSel && remaining > 0;
 
               return SpellCard(
                 spell: spell,
                 isSelected: isSel,
+                isAutomatic: isAutomatic,
                 canAdd: canAdd,
-                onTap: () {
-                  if (isCantrip) {
-                    spellVM.toggleCantrip(spell.slug, cantripsMax);
-                  } else {
-                    spellVM.toggleSpell(
-                      spell.slug,
-                      spellLevel,
-                      globalSpellsMax,
-                    );
-                  }
-                },
+                onTap: isAutomatic
+                    ? null
+                    : () {
+                        if (isCantrip) {
+                          spellVM.toggleCantrip(spell.slug, cantripsMax);
+                        } else {
+                          spellVM.toggleSpell(
+                            spell.slug,
+                            spellLevel,
+                            globalSpellsMax,
+                          );
+                        }
+                      },
               );
             },
           ),

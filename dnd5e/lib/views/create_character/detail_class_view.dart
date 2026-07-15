@@ -16,7 +16,8 @@ import '../../widgets/create_character_view/detail_class_view/section/subclass_s
 import '../../widgets/create_character_view/detail_class_view/section/fighting_style_section.dart';
 import '../../widgets/create_character_view/detail_class_view/section/hp_section.dart';
 import '../../widgets/create_character_view/detail_class_view/header.dart';
-import '../../../utils/app_theme.dart';
+import '../../utils/app_theme.dart';
+import '../../utils/spellcasting_source.dart';
 
 class DetailClassView extends StatefulWidget {
   const DetailClassView({super.key});
@@ -25,25 +26,20 @@ class DetailClassView extends StatefulWidget {
 }
 
 class _DetailClassViewState extends State<DetailClassView> {
-  // Clases que tienen hechizos
-  static const _spellcasterSlugs = [
-    'bard',
-    'cleric',
-    'druid',
-    'paladin',
-    'ranger',
-    'sorcerer',
-    'warlock',
-    'wizard',
-  ];
-
-  bool _isSpellcaster(String slug) => _spellcasterSlugs.contains(slug);
-
   // ── Navega a Hechizos ─────────────────────────────────────────────────────
   void _goToSpells(BuildContext context) {
-    // Capturamos dvm y subclassVM ANTES de navegar — aún están en scope
-    final dvm       = context.read<DetailClassViewModel>();
-    final subVM     = context.read<CharacterSubclassViewModel>();
+    final dvm = context.read<DetailClassViewModel>();
+    final subVM = context.read<CharacterSubclassViewModel>();
+
+    if (subVM.requiresSpellTableChoice &&
+        subVM.selectedSpellTable == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Choose the subclass spell list before continuing.'),
+        ),
+      );
+      return;
+    }
 
     Navigator.push(
       context,
@@ -127,7 +123,13 @@ class _DetailClassViewState extends State<DetailClassView> {
         : 'Subclass';
     final unlockLevel = dvm.subclassUnlockLevelFor(charClass.slug);
     final canChoose = dvm.canChooseSubclass(charClass.slug, vm.level);
-    final isSpellcaster = _isSpellcaster(charClass.slug);
+    final spellSource = SpellcastingSourceResolver.resolve(
+      characterClass: charClass,
+      characterLevel: vm.level,
+      archetype: dvm.selectedArchetype,
+    );
+    final hasSpellSelection =
+        spellSource?.hasSpellSelectionAtLevel(vm.level) ?? false;
 
     return Scaffold(
       appBar: _bar(),
@@ -170,6 +172,7 @@ class _DetailClassViewState extends State<DetailClassView> {
               subtypesName: subtypesName,
               canChoose: canChoose,
               unlockLevel: unlockLevel,
+              characterLevel: vm.level,
               existingSkills: [
                 ...vm.skillVM.classFixedSkills,
                 ...vm.skillVM.bgFixedSkills,
@@ -191,7 +194,7 @@ class _DetailClassViewState extends State<DetailClassView> {
 
             // ── Botón de navegación condicional ───────────────────────────
             // Lanzadores → Hechizos. Resto → Inventario directamente.
-            if (isSpellcaster)
+            if (hasSpellSelection)
               _navButton(
                 label: 'Continue to Spell Selection',
                 icon: Icons.auto_fix_high,

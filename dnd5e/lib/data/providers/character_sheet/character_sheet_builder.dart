@@ -4,6 +4,7 @@ import '../../../view_models/character/character_inventory_view_model.dart';
 import '../../../view_models/character/character_spell_view_model.dart';
 import '../../../view_models/character/character_detail_class_view_model.dart';
 import '../../../view_models/character/character_subclass_view_model.dart';
+import '../../../utils/spellcasting_source.dart';
 
 import 'character_sheet_data.dart';
 import 'character_sheet_text_utils.dart';
@@ -25,6 +26,13 @@ class CharacterSheetBuilder {
   }) {
     final profBonus = CreateCharacterViewModel.proficiencyBonus(vm.level);
     final charClass = vm.selectedClass;
+    final spellSource = charClass == null
+        ? null
+        : SpellcastingSourceResolver.resolve(
+            characterClass: charClass,
+            characterLevel: vm.level,
+            archetype: detailVM?.selectedArchetype,
+          );
 
     final strMod = vm.getModifier('Strength');
     final dexMod = vm.getModifier('Dexterity');
@@ -182,9 +190,9 @@ class CharacterSheetBuilder {
       charClass: charClass,
     );
 
-    final spellInfo = _buildSpellInfo(vm, profBonus);
+    final spellInfo = _buildSpellInfo(vm, profBonus, spellSource);
     final spellsByLevel = _buildSpellsByLevel(spellVM);
-    final slotCounts = _buildSlotCounts(vm, spellVM);
+    final slotCounts = _buildSlotCounts(vm, spellVM, spellSource);
 
     final manualHp = detailVM?.calculateTotalHP() ?? 0;
     final sheetMaxHp = manualHp > 0 ? manualHp : vm.maxHp;
@@ -194,7 +202,7 @@ class CharacterSheetBuilder {
       classLevel: '${charClass?.name ?? ''} ${vm.level}',
       race: vm.selectedRace?['name'] ?? '',
       background: vm.selectedBackground?['name'] ?? '',
-      className: charClass?.name ?? '',
+      className: spellSource?.displayName ?? charClass?.name ?? '',
       playerName: playerName,
       alignment: alignment,
       temporaryHp: temporaryHp,
@@ -405,14 +413,13 @@ class CharacterSheetBuilder {
   static _SpellInfo _buildSpellInfo(
     CreateCharacterViewModel vm,
     int profBonus,
+    SpellcastingSource? source,
   ) {
-    final charClass = vm.selectedClass;
-
-    if (charClass == null || charClass.spellcasting_ability.isEmpty) {
+    if (source == null || source.ability.isEmpty) {
       return const _SpellInfo();
     }
 
-    final ability = charClass.spellcasting_ability;
+    final ability = source.ability;
     final spellMod = vm.getModifier(ability);
     final attackBonus = spellMod + profBonus;
     final saveDc = 8 + profBonus + spellMod;
@@ -446,17 +453,17 @@ class CharacterSheetBuilder {
   static Map<int, int> _buildSlotCounts(
     CreateCharacterViewModel vm,
     CharacterSpellViewModel? spellVM,
+    SpellcastingSource? source,
   ) {
     final slotCounts = <int, int>{};
-    final charClass = vm.selectedClass;
 
-    if (spellVM == null || charClass == null) {
+    if (spellVM == null || source == null) {
       return slotCounts;
     }
 
     final info = spellVM.parseSpellcastingInfo(
-      charClass.table,
-      charClass.slug,
+      source.table,
+      source.rulesSlug,
       vm.level,
     );
 
@@ -470,7 +477,7 @@ class CharacterSheetBuilder {
       }
     }
 
-    if (charClass.slug == 'warlock' && info.warlockSlots > 0) {
+    if (source.rulesSlug == 'warlock' && info.warlockSlots > 0) {
       slotCounts[info.warlockSlotLevel] = info.warlockSlots;
     }
 
