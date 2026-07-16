@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../utils/app_theme.dart';
 import '../../../../view_models/character/character_inventory_view_model.dart';
 
 class MoneySection extends StatelessWidget {
@@ -101,7 +102,7 @@ class _MoneyFieldState extends State<_MoneyField> {
             const SizedBox(height: 4),
             Text(
               widget.label,
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+              style: TextStyle(color: context.dndColors.mutedText, fontSize: 12),
             ),
           ],
         ),

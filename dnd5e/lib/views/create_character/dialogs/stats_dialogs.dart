@@ -22,15 +22,11 @@ class StatsDialogs {
             child: const Text("Cancel"),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
               vm.rollRandomStats();
               Navigator.pop(context);
             },
-            child: const Text(
-              "Roll Dice!",
-              style: TextStyle(color: Colors.white),
-            ),
+            child: const Text('Roll Dice!'),
           ),
         ],
       ),
@@ -145,8 +141,8 @@ class StatsDialogs {
                             ),
                             subtitle: Text(
                               feat['prerequisite'] ?? "No requisites",
-                              style: const TextStyle(
-                                color: Colors.red,
+                              style: TextStyle(
+                                color: context.colors.primary,
                                 fontSize: 11,
                               ),
                             ),
@@ -216,7 +212,9 @@ class StatsDialogs {
                   width: 40,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant,
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
@@ -224,19 +222,19 @@ class StatsDialogs {
               const SizedBox(height: 20),
               Text(
                 feat['name'],
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryRed,
+                  color: context.colors.primary,
                 ),
               ),
               if (feat['prerequisite'] != null) ...[
                 const SizedBox(height: 8),
                 Text(
                   "${feat['prerequisite']}",
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontStyle: FontStyle.italic,
-                    color: AppTheme.primaryRed,
+                    color: context.colors.primary,
                   ),
                 ),
               ],
@@ -341,8 +339,8 @@ class StatsDialogs {
                   width: double.infinity,
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red[800],
-                      side: BorderSide(color: Colors.red[300]!),
+                      foregroundColor: context.colors.primary,
+                      side: BorderSide(color: context.colors.primary),
                     ),
                     onPressed: () {
                       final profs = _extractProficienciesFromFeat(feat);

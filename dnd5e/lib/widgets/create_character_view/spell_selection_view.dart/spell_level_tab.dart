@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../utils/app_theme.dart';
 import '../../../view_models/character/character_spell_view_model.dart';
 import 'spell_card.dart';
 
@@ -21,35 +23,41 @@ class SpellLevelTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isCantrip = spellLevel == 0;
-
-    // Hechizos de este nivel disponibles para esta clase
     final levelSpells = spellVM
         .filteredSpells(classSlug, spellLevel)
-        .where((s) => s.levelInt == spellLevel)
+        .where((spell) => spell.levelInt == spellLevel)
         .toList();
 
-    // Contadores según el tipo
-    final int selectedCount = isCantrip
+    final selectedCount = isCantrip
         ? spellVM.totalCantripsTowardLimit
         : spellVM.totalNonCantripsTowardLimit;
-    final int maxAllowed = isCantrip ? cantripsMax : globalSpellsMax;
-    final int remaining = maxAllowed - selectedCount;
+    final maxAllowed = isCantrip ? cantripsMax : globalSpellsMax;
+    final remaining = maxAllowed - selectedCount;
 
     if (levelSpells.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No spells found for this level.',
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(color: context.dndColors.mutedText),
         ),
       );
     }
 
+    final counterColor = remaining > 0
+        ? context.dndColors.success
+        : context.dndColors.danger;
+    final counterContainer = remaining > 0
+        ? context.dndColors.successContainer
+        : context.dndColors.dangerContainer;
+    final counterText = remaining > 0
+        ? context.dndColors.onSuccessContainer
+        : context.dndColors.onDangerContainer;
+
     return Column(
       children: [
-        // ── Indicador de progreso ──────────────────────────────────────
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          color: Colors.grey.shade100,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+          color: context.dndColors.surfaceMuted,
           child: Row(
             children: [
               Column(
@@ -67,7 +75,7 @@ class SpellLevelTab extends StatelessWidget {
                       'Shared pool across all spell levels',
                       style: TextStyle(
                         fontSize: 10,
-                        color: Colors.grey.shade500,
+                        color: context.dndColors.mutedText,
                       ),
                     ),
                 ],
@@ -79,14 +87,10 @@ class SpellLevelTab extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: remaining > 0
-                      ? Colors.green.shade100
-                      : const Color(0xFFE50914).withOpacity(0.1),
+                  color: counterContainer,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: remaining > 0
-                        ? Colors.green.shade400
-                        : const Color(0xFFE50914).withOpacity(0.4),
+                    color: counterColor.withValues(alpha: 0.55),
                   ),
                 ),
                 child: Text(
@@ -94,17 +98,13 @@ class SpellLevelTab extends StatelessWidget {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
-                    color: remaining > 0
-                        ? Colors.green.shade700
-                        : const Color(0xFFE50914),
+                    color: counterText,
                   ),
                 ),
               ),
             ],
           ),
         ),
-
-        // ── Lista de hechizos ──────────────────────────────────────────
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.all(8),
@@ -112,12 +112,12 @@ class SpellLevelTab extends StatelessWidget {
             itemBuilder: (context, i) {
               final spell = levelSpells[i];
               final isAutomatic = spellVM.isAutomaticSpell(spell.slug);
-              final isSel = spellVM.isSelected(spell.slug, spellLevel);
-              final canAdd = !isAutomatic && !isSel && remaining > 0;
+              final isSelected = spellVM.isSelected(spell.slug, spellLevel);
+              final canAdd = !isAutomatic && !isSelected && remaining > 0;
 
               return SpellCard(
                 spell: spell,
-                isSelected: isSel,
+                isSelected: isSelected,
                 isAutomatic: isAutomatic,
                 canAdd: canAdd,
                 onTap: isAutomatic

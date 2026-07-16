@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../utils/app_theme.dart';
 import '../../../view_models/character/character_view_model.dart';
 
 class CharacterSheetChecklistCard extends StatelessWidget {
@@ -33,12 +34,12 @@ class CharacterSheetChecklistCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.dndColors.surfaceRaised,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: context.dndColors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: context.isDarkMode ? 0.18 : 0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -57,7 +58,7 @@ class CharacterSheetChecklistCard extends StatelessWidget {
               Text(
                 '$done/${items.length}',
                 style: TextStyle(
-                  color: done == items.length ? Colors.green : Colors.orange,
+                  color: done == items.length ? context.dndColors.success : context.dndColors.warning,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -68,9 +69,9 @@ class CharacterSheetChecklistCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: done / items.length,
-              backgroundColor: Colors.grey.shade200,
+              backgroundColor: context.dndColors.surfaceStrong,
               valueColor: AlwaysStoppedAnimation(
-                done == items.length ? Colors.green : Colors.orange,
+                done == items.length ? context.dndColors.success : context.dndColors.warning,
               ),
               minHeight: 6,
             ),
@@ -86,14 +87,14 @@ class CharacterSheetChecklistCard extends StatelessWidget {
                         ? Icons.check_circle
                         : Icons.radio_button_unchecked,
                     size: 16,
-                    color: item.done ? Colors.green : Colors.grey,
+                    color: item.done ? context.dndColors.success : context.dndColors.subtleText,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     item.label,
                     style: TextStyle(
                       fontSize: 12,
-                      color: item.done ? Colors.black87 : Colors.grey,
+                      color: item.done ? context.colors.onSurface : context.dndColors.mutedText,
                     ),
                   ),
                 ],

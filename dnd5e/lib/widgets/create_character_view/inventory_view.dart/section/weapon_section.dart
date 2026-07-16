@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+
+import '../../../../utils/app_theme.dart';
 import '../../../../view_models/character/character_inventory_view_model.dart';
 import '../weapon_add_dropdown.dart';
-import '../../../../utils/app_theme.dart';
-
 
 class WeaponSection extends StatelessWidget {
   final CharacterInventoryViewModel inv;
@@ -11,11 +11,8 @@ class WeaponSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final allWeapons = inv.allWeapons;
-
     return Column(
       children: [
-        // Lista de armas seleccionadas
         ...inv.weaponEntries.map(
           (entry) => Padding(
             padding: const EdgeInsets.only(bottom: 8),
@@ -28,13 +25,17 @@ class WeaponSection extends StatelessWidget {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: context.dndColors.surfaceRaised,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: context.dndColors.border),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.gavel, size: 16, color: AppTheme.primaryRed),
+                        Icon(
+                          Icons.gavel,
+                          size: 16,
+                          color: context.colors.primary,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Column(
@@ -50,8 +51,8 @@ class WeaponSection extends StatelessWidget {
                               Text(
                                 '${entry.weapon.damageDice} ${entry.weapon.damageType}'
                                 '${entry.weapon.properties.isNotEmpty ? ' · ${entry.weapon.properties.take(2).join(', ')}' : ''}',
-                                style: const TextStyle(
-                                  color: Colors.grey,
+                                style: TextStyle(
+                                  color: context.dndColors.mutedText,
                                   fontSize: 11,
                                 ),
                               ),
@@ -63,8 +64,6 @@ class WeaponSection extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-
-                // Cantidad
                 _QuantityPicker(
                   value: entry.quantity,
                   onDecrement: () => inv.updateWeaponQuantity(
@@ -77,10 +76,12 @@ class WeaponSection extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 4),
-
-                // Quitar
                 IconButton(
-                  icon: const Icon(Icons.close, size: 18, color: AppTheme.primaryRed),
+                  icon: Icon(
+                    Icons.close,
+                    size: 18,
+                    color: context.colors.primary,
+                  ),
                   onPressed: () => inv.removeWeapon(entry.weapon.slug),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(
@@ -92,15 +93,12 @@ class WeaponSection extends StatelessWidget {
             ),
           ),
         ),
-
-        // Dropdown para agregar arma
-        WeaponAddDropdown(allWeapons: allWeapons, inv: inv),
+        WeaponAddDropdown(allWeapons: inv.allWeapons, inv: inv),
       ],
     );
   }
 }
 
-// ─── Quantity Picker ──────────────────────────────────────────────────────────
 class _QuantityPicker extends StatelessWidget {
   final int value;
   final VoidCallback onDecrement;
@@ -116,7 +114,8 @@ class _QuantityPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
+        color: context.dndColors.surfaceRaised,
+        border: Border.all(color: context.dndColors.border),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(

@@ -175,10 +175,10 @@ class _DetailClassViewState extends State<DetailClassView> {
     if (charClass == null) {
       return Scaffold(
         appBar: _bar(),
-        body: const Center(
+        body: Center(
           child: Text(
             'Select a class first.',
-            style: TextStyle(color: Colors.grey, fontSize: 16),
+            style: TextStyle(color: context.dndColors.mutedText, fontSize: 16),
           ),
         ),
       );
@@ -221,7 +221,7 @@ class _DetailClassViewState extends State<DetailClassView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Header ────────────────────────────────────────────────────
-            classHeader(charClass, vm.level),
+            classHeader(context, charClass, vm.level),
             const SizedBox(height: 24),
             const Divider(thickness: 1.2),
 
@@ -237,7 +237,7 @@ class _DetailClassViewState extends State<DetailClassView> {
               ],
             ),
             const SizedBox(height: 12),
-            buildHPSection(dvm, charClass.hit_dice, vm.level),
+            buildHPSection(context, dvm, charClass.hit_dice, vm.level),
             const Divider(height: 40, thickness: 1.2),
 
             // ── Fighting Style (solo si aplica) ───────────────────────────
@@ -314,7 +314,6 @@ class _DetailClassViewState extends State<DetailClassView> {
   // ── AppBar ────────────────────────────────────────────────────────────────
   AppBar _bar() => AppBar(
     title: const Text('Class Details'),
-    backgroundColor: AppTheme.primaryRed,
   );
 
   // ── Botón de navegación reutilizable ──────────────────────────────────────

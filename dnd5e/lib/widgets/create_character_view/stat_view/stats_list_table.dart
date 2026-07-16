@@ -37,9 +37,15 @@ class StatRow extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 4),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: improvementBonus > 0 ? Colors.amber[50] : Colors.white,
+        color: improvementBonus > 0
+            ? context.dndColors.warningContainer
+            : context.dndColors.surfaceRaised,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: improvementBonus > 0 ? Colors.amber : Colors.grey[300]!),
+        border: Border.all(
+          color: improvementBonus > 0
+              ? context.dndColors.warning
+              : context.dndColors.border,
+        ),
       ),
       child: Row(
         children: [
@@ -66,11 +72,11 @@ class StatRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text("Total: $total", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Text("Mod: ${mod >= 0 ? '+' : ''}$mod", style: TextStyle(color: AppTheme.primaryRed, fontWeight: FontWeight.bold)),
+                Text("Mod: ${mod >= 0 ? '+' : ''}$mod", style: TextStyle(color: context.colors.primary, fontWeight: FontWeight.bold)),
                 if (racialBonus > 0)
-                  Text("Race: +$racialBonus", style: const TextStyle(fontSize: 10, color: Colors.green)),
+                  Text("Race: +$racialBonus", style: TextStyle(fontSize: 10, color: context.dndColors.success)),
                 if (improvementBonus > 0)
-                  Text("Lvl Up: +$improvementBonus", style: const TextStyle(fontSize: 10, color: Colors.amber, fontWeight: FontWeight.bold)),
+                  Text("Lvl Up: +$improvementBonus", style: TextStyle(fontSize: 10, color: context.dndColors.warning, fontWeight: FontWeight.bold)),
               ],
             ),
           ),

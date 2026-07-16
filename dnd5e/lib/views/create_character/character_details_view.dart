@@ -12,7 +12,6 @@ import '../../view_models/character/character_detail_class_view_model.dart';
 import '../../view_models/character/character_subclass_view_model.dart';
 import '../../views/create_character/detail_class_view.dart';
 import '../../widgets/create_character_view/detail_view/sections/dragonbron_section.dart';
-import '../../utils/app_theme.dart';
 
 class CharacterSkillAndEquipmentView extends StatelessWidget {
   const CharacterSkillAndEquipmentView({super.key});
@@ -29,7 +28,6 @@ class CharacterSkillAndEquipmentView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Skills & Equipment"),
-        backgroundColor: AppTheme.primaryRed,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -52,8 +50,7 @@ class CharacterSkillAndEquipmentView extends StatelessWidget {
               height: 52,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryRed,
-                  foregroundColor: Colors.white,
+                            foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),

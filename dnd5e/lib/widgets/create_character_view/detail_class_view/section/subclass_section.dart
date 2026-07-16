@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../../utils/app_theme.dart';
 import '../../../../view_models/character/character_detail_class_view_model.dart';
 import '../../../../view_models/character/character_subclass_view_model.dart';
@@ -17,38 +18,42 @@ Widget subclassSection(
   required List<String> existingSkills,
 }) {
   final grantedSpells = subclassVM.grantedSpellsForLevel(characterLevel);
+  final success = context.dndColors.success;
+  final magicAccent = context.isDarkMode
+      ? const Color(0xFFD8B4FE)
+      : const Color(0xFF6A1B9A);
 
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Row(
         children: [
-          const Icon(Icons.auto_awesome, color: AppTheme.primaryRed, size: 20),
+          Icon(Icons.auto_awesome, color: context.colors.primary, size: 20),
           const SizedBox(width: 8),
           Text(
             subtypesName,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: context.textStyles.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
       const SizedBox(height: 10),
-
       if (!canChoose)
         infoBox(
           icon: Icons.lock_outline,
           color: Colors.amber,
           text: 'Your $subtypesName unlocks at level $unlockLevel.',
         ),
-
       if (canChoose) ...[
         if (dvm.selectedArchetype == null)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Text(
               'Choose your ${subtypesName.toLowerCase()}:',
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w600,
-                color: AppTheme.primaryRed,
+                color: context.colors.primary,
               ),
             ),
           )
@@ -57,13 +62,13 @@ Widget subclassSection(
             padding: const EdgeInsets.only(bottom: 10),
             child: Row(
               children: [
-                const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                Icon(Icons.check_circle, color: success, size: 16),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     'Selected: ${dvm.selectedArchetype!['name']}',
-                    style: const TextStyle(
-                      color: Colors.green,
+                    style: TextStyle(
+                      color: success,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -72,43 +77,39 @@ Widget subclassSection(
             ),
           ),
       ],
-
       ...archetypes.map(
-        (arch) => archetypeCard(
+        (archetype) => archetypeCard(
           context,
-          arch: arch,
+          arch: archetype,
           dvm: dvm,
           canChoose: canChoose,
         ),
       ),
-
       if (canChoose &&
           (dvm.selectedArchetype != null ||
               subclassVM.pendingChoicesCount > 0 ||
               subclassVM.automaticSkills.isNotEmpty)) ...[
         const SizedBox(height: 16),
-
         if (subclassVM.automaticSkills.isNotEmpty) ...[
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.08),
+              color: context.dndColors.successContainer,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.green.withOpacity(0.3)),
+              border: Border.all(color: success.withValues(alpha: 0.52)),
             ),
             child: Text(
               'Automatic Proficiencies Granted:\n'
               '${subclassVM.automaticSkills.join(', ')}',
-              style: const TextStyle(
-                color: Colors.green,
-                fontWeight: FontWeight.w500,
+              style: TextStyle(
+                color: context.dndColors.onSuccessContainer,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
           const SizedBox(height: 12),
         ],
-
         if (subclassVM.availableOptionsForChoice.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
@@ -116,31 +117,31 @@ Widget subclassSection(
               'Choose ${subclassVM.pendingChoicesCount} Bonus Skills:',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color:
-                    subclassVM.selectedBonusSkills.length ==
+                color: subclassVM.selectedBonusSkills.length ==
                         subclassVM.pendingChoicesCount
-                    ? Colors.green
-                    : AppTheme.primaryRed,
+                    ? success
+                    : context.colors.primary,
               ),
             ),
           ),
           Wrap(
             spacing: 8,
-            runSpacing: 4,
+            runSpacing: 6,
             children: subclassVM.availableOptionsForChoice.map((skill) {
               final selected = subclassVM.selectedBonusSkills.contains(skill);
+
               return FilterChip(
                 label: Text(skill),
                 selected: selected,
-                selectedColor: AppTheme.primaryRed.withOpacity(0.2),
-                checkmarkColor: AppTheme.primaryRed,
+                selectedColor:
+                    context.colors.primaryContainer.withValues(alpha: 0.7),
+                checkmarkColor: context.colors.primary,
                 onSelected: (_) => subclassVM.toggleBonusSkill(skill),
               );
             }).toList(),
           ),
         ],
       ],
-
       if (canChoose &&
           dvm.selectedArchetype != null &&
           (subclassVM.spellTables.isNotEmpty || grantedSpells.isNotEmpty)) ...[
@@ -149,24 +150,26 @@ Widget subclassSection(
           width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFF6A1B9A).withOpacity(0.07),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: const Color(0xFF6A1B9A).withOpacity(0.3),
+            color: Color.lerp(
+              context.dndColors.surfaceRaised,
+              magicAccent,
+              context.isDarkMode ? 0.16 : 0.08,
             ),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: magicAccent.withValues(alpha: 0.45)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.auto_fix_high, size: 17, color: Color(0xFF6A1B9A)),
-                  SizedBox(width: 6),
+                  Icon(Icons.auto_fix_high, size: 17, color: magicAccent),
+                  const SizedBox(width: 6),
                   Text(
                     'Subclass Spells',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF6A1B9A),
+                      color: magicAccent,
                     ),
                   ),
                 ],
@@ -184,10 +187,8 @@ Widget subclassSection(
                   children: subclassVM.spellTables.map((table) {
                     return ChoiceChip(
                       label: Text(table.title),
-                      selected:
-                          subclassVM.selectedSpellTableId == table.id,
-                      onSelected: (_) =>
-                          subclassVM.selectSpellTable(table.id),
+                      selected: subclassVM.selectedSpellTableId == table.id,
+                      onSelected: (_) => subclassVM.selectSpellTable(table.id),
                     );
                   }).toList(),
                 ),
@@ -197,7 +198,8 @@ Widget subclassSection(
                 const SizedBox(height: 8),
                 Text(
                   grantedSpells.isEmpty
-                      ? 'No subclass spells are unlocked at level $characterLevel.'
+                      ? 'No subclass spells are unlocked at level '
+                          '$characterLevel.'
                       : 'Granted automatically at level $characterLevel:\n'
                           '${grantedSpells.map((grant) => grant.spellName).join(', ')}',
                   style: const TextStyle(fontSize: 12, height: 1.4),
@@ -206,11 +208,12 @@ Widget subclassSection(
                   (grant) => !grant.countsAgainstLimit,
                 )) ...[
                   const SizedBox(height: 6),
-                  const Text(
-                    'Bonus granted spells do not count against your normal spell limit.',
+                  Text(
+                    'Bonus granted spells do not count against your normal '
+                    'spell limit.',
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.black54,
+                      color: context.dndColors.mutedText,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -219,11 +222,12 @@ Widget subclassSection(
                   (grant) => grant.countsAgainstLimit,
                 )) ...[
                   const SizedBox(height: 6),
-                  const Text(
-                    'Required spells are selected automatically, but still count toward the subclass limit.',
+                  Text(
+                    'Required spells are selected automatically, but still '
+                    'count toward the subclass limit.',
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.black54,
+                      color: context.dndColors.mutedText,
                       fontStyle: FontStyle.italic,
                     ),
                   ),

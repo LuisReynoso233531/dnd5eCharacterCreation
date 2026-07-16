@@ -1,43 +1,40 @@
 import 'package:flutter/material.dart';
 
-import '../../../view_models/character/character_view_model.dart';
-import '../../../view_models/character/character_inventory_view_model.dart';
 import '../../../utils/app_theme.dart';
 import '../../../view_models/character/character_detail_class_view_model.dart';
+import '../../../view_models/character/character_inventory_view_model.dart';
+import '../../../view_models/character/character_view_model.dart';
 
 class CharacterSheetSummaryCard extends StatelessWidget {
   final CreateCharacterViewModel vm;
   final CharacterInventoryViewModel invVM;
-
   final DetailClassViewModel? detailVM;
 
-const CharacterSheetSummaryCard({
-  super.key,
-  required this.vm,
-  required this.invVM,
-  this.detailVM,
-});
+  const CharacterSheetSummaryCard({
+    super.key,
+    required this.vm,
+    required this.invVM,
+    this.detailVM,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final profBonus = CreateCharacterViewModel.proficiencyBonus(vm.level);
+    final proficiencyBonus = CreateCharacterViewModel.proficiencyBonus(vm.level);
     final manualHp = detailVM?.calculateTotalHP() ?? 0;
     final maxHp = manualHp > 0 ? manualHp : vm.maxHp;
-
-    final ac = invVM.calculateTotalAC(
+    final armorClass = invVM.calculateTotalAC(
       dexMod: vm.getModifier('Dexterity'),
       conMod: vm.getModifier('Constitution'),
       wisMod: vm.getModifier('Wisdom'),
     );
+    final primary = context.colors.primary;
+    final darkerPrimary = Color.lerp(primary, Colors.black, 0.34)!;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            AppTheme.primaryRed.withOpacity(0.85),
-            AppTheme.primaryRed.withOpacity(0.45),
-          ],
+          colors: [primary, darkerPrimary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -60,14 +57,20 @@ const CharacterSheetSummaryCard({
             runSpacing: 6,
             children: [
               if (vm.selectedClass != null)
-                _chip('${vm.selectedClass!.name} ${vm.level}', Icons.military_tech),
+                _summaryChip(
+                  '${vm.selectedClass!.name} ${vm.level}',
+                  Icons.military_tech,
+                ),
               if (vm.selectedRace != null)
-                _chip(vm.selectedRace!['name'] ?? '', Icons.face),
+                _summaryChip(vm.selectedRace!['name'] ?? '', Icons.face),
               if (vm.selectedBackground != null)
-                _chip(vm.selectedBackground!['name'] ?? '', Icons.history_edu),
-              _chip('HP: $maxHp', Icons.favorite),
-              _chip('AC: $ac', Icons.shield),
-              _chip('Prof: +$profBonus', Icons.star),
+                _summaryChip(
+                  vm.selectedBackground!['name'] ?? '',
+                  Icons.history_edu,
+                ),
+              _summaryChip('HP: $maxHp', Icons.favorite),
+              _summaryChip('AC: $armorClass', Icons.shield),
+              _summaryChip('Prof: +$proficiencyBonus', Icons.star),
             ],
           ),
         ],
@@ -75,11 +78,11 @@ const CharacterSheetSummaryCard({
     );
   }
 
-  Widget _chip(String label, IconData icon) {
+  Widget _summaryChip(String label, IconData icon) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -87,7 +90,10 @@ const CharacterSheetSummaryCard({
         children: [
           Icon(icon, size: 13, color: Colors.white),
           const SizedBox(width: 4),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 12),
+          ),
         ],
       ),
     );

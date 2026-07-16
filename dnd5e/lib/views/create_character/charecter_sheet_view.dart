@@ -97,7 +97,6 @@ class _CharacterSheetViewState extends State<CharacterSheetView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Character Sheet'),
-        backgroundColor: AppTheme.primaryRed,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -136,7 +135,7 @@ class _CharacterSheetViewState extends State<CharacterSheetView> {
               Text(
                 'Select a race and class to generate the sheet.',
                 style: TextStyle(
-                  color: Colors.grey.shade600,
+                  color: context.dndColors.mutedText,
                   fontSize: 12,
                   fontStyle: FontStyle.italic,
                 ),
@@ -271,8 +270,8 @@ class _CharacterSheetViewState extends State<CharacterSheetView> {
       height: 54,
       child: ElevatedButton.icon(
         style: ElevatedButton.styleFrom(
-          backgroundColor: isReady ? AppTheme.primaryRed : Colors.grey.shade400,
-          foregroundColor: Colors.white,
+          backgroundColor: isReady ? context.colors.primary : null,
+          foregroundColor: isReady ? context.colors.onPrimary : null,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -338,10 +337,13 @@ class _CharacterSheetViewState extends State<CharacterSheetView> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Character sheet generated!'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(
+            'Character sheet generated!',
+            style: TextStyle(color: context.dndColors.onSuccessContainer),
+          ),
+          backgroundColor: context.dndColors.successContainer,
+          duration: const Duration(seconds: 2),
         ),
       );
     } catch (e) {
@@ -375,7 +377,7 @@ class _CharacterSheetViewState extends State<CharacterSheetView> {
           width: 4,
           height: 20,
           decoration: BoxDecoration(
-            color: AppTheme.primaryRed,
+            color: context.colors.primary,
             borderRadius: BorderRadius.circular(2),
           ),
         ),

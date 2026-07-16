@@ -80,7 +80,7 @@ class _ClassTraitsSummaryState extends State<ClassTraitsSummary> {
     return traitBlock(
       title: '${cls.name} — Class Features',
       icon: Icons.military_tech,
-      color: AppTheme.primaryRed,
+      color: context.colors.primary,
       raw: buf.toString().trim(),
       expanded: _isExpanded,
       onToggle: () => setState(() => _isExpanded = !_isExpanded),

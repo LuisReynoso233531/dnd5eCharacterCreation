@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../view_models/character/character_inventory_view_model.dart';
 import '../../../utils/styled_dropdown.dart';
-import '../../../../utils/app_theme.dart';
 
 class WeaponAddDropdown extends StatefulWidget {
   final List<WeaponModel> allWeapons;
@@ -35,8 +34,7 @@ class _WeaponAddDropdownState extends State<WeaponAddDropdown> {
             width: double.infinity,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryRed,
-                foregroundColor: Colors.white,
+                        foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),

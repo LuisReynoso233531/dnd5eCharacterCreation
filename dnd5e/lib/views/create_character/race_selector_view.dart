@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../view_models/character/character_view_model.dart';
-import '../../views/create_character/background_selecter_view.dart';
+
 import '../../utils/app_theme.dart';
+import '../../view_models/character/character_view_model.dart';
+import 'background_selecter_view.dart';
 
 class RaceSelectionView extends StatefulWidget {
   const RaceSelectionView({super.key});
@@ -20,14 +21,10 @@ class _RaceSelectionViewState extends State<RaceSelectionView> {
     );
   }
 
-  // MODAL DE DETALLES (Se activa con Long Press)
   void _showRaceDetails(BuildContext context, Map<String, dynamic> race) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (context) => DraggableScrollableSheet(
         initialChildSize: 0.7,
         minChildSize: 0.5,
@@ -37,44 +34,54 @@ class _RaceSelectionViewState extends State<RaceSelectionView> {
           controller: scrollController,
           padding: const EdgeInsets.all(20),
           children: [
+            Container(
+              width: 42,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 18),
+              decoration: BoxDecoration(
+                color: context.dndColors.borderStrong,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
             Text(
               race['name'],
-              style: const TextStyle(
-                fontSize: 12,
+              style: TextStyle(
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.primaryRed,
+                color: context.colors.primary,
               ),
             ),
             const SizedBox(height: 10),
-            _detailSection("Description", race['desc']),
-            _detailSection("Ability Score Increase", race['asi_desc']),
-            _detailSection("Age", race['age']),
-            _detailSection("Size", race['size']),
-            _detailSection("Speed", race['speed_desc']),
-            _detailSection("Languages", race['languages']),
+            _detailSection(context, 'Description', race['desc']),
+            _detailSection(context, 'Ability Score Increase', race['asi_desc']),
+            _detailSection(context, 'Age', race['age']),
+            _detailSection(context, 'Size', race['size']),
+            _detailSection(context, 'Speed', race['speed_desc']),
+            _detailSection(context, 'Languages', race['languages']),
             if (race['vision'] != null)
-              _detailSection("Vision", race['vision']),
-            _detailSection("Traits", race['traits']),
+              _detailSection(context, 'Vision', race['vision']),
+            _detailSection(context, 'Traits', race['traits']),
           ],
         ),
       ),
     );
   }
 
-  Widget _detailSection(String title, dynamic content) {
-    if (content == null || content.toString().isEmpty)
+  Widget _detailSection(BuildContext context, String title, dynamic content) {
+    if (content == null || content.toString().isEmpty) {
       return const SizedBox.shrink();
-    String cleanContent = content.toString().replaceAll(RegExp(r'[\*#_]'), '');
+    }
+    final cleanContent = content.toString().replaceAll(RegExp(r'[\*#_]'), '');
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.blueGrey,
+              color: context.dndColors.info,
             ),
           ),
           const SizedBox(height: 4),
@@ -90,47 +97,29 @@ class _RaceSelectionViewState extends State<RaceSelectionView> {
     final vm = context.watch<CreateCharacterViewModel>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Select Race"),
-        backgroundColor: AppTheme.primaryRed,
-        foregroundColor: Colors.white,
-      ),
-      body: Column(
-        children: [
-          if (vm.isLoading)
-            const Expanded(
-              child: Center(
-                child: CircularProgressIndicator(color: AppTheme.primaryRed),
-              ),
-            ),
+      appBar: AppBar(title: const Text('Select Race')),
+      body: vm.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: vm.races.length,
+              itemBuilder: (context, index) {
+                final race = vm.races[index];
+                final asiList = List<dynamic>.from(race['asi'] ?? []);
 
-          if (!vm.isLoading && vm.races.isNotEmpty)
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(12),
-                itemCount: vm.races.length,
-
-                // ... dentro del ListView.builder en RaceSelectionView
-                itemBuilder: (context, index) {
-                  final race = vm.races[index];
-                  final List<dynamic> asiList = race['asi'] ?? [];
-
-                  return Card(
-                    elevation: 2,
-                    margin: const EdgeInsets.only(bottom: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Card(
                     child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 8,
+                        vertical: 10,
                       ),
                       title: Text(
                         race['name'],
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.primaryRed,
+                          color: context.colors.primary,
                           fontSize: 18,
                         ),
                       ),
@@ -140,19 +129,15 @@ class _RaceSelectionViewState extends State<RaceSelectionView> {
                           const SizedBox(height: 4),
                           Text(
                             "Speed: ${race['speed']['walk']} ft.",
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Colors.black87,
-                            ),
+                            style: const TextStyle(fontSize: 13),
                           ),
                           const SizedBox(height: 2),
-                          // --- EL TEXTO DE AYUDA ---
-                          const Text(
-                            "Hold for info",
+                          Text(
+                            'Hold for info',
                             style: TextStyle(
                               fontSize: 11,
                               fontStyle: FontStyle.italic,
-                              color: Colors.grey,
+                              color: context.dndColors.mutedText,
                             ),
                           ),
                         ],
@@ -168,41 +153,40 @@ class _RaceSelectionViewState extends State<RaceSelectionView> {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.blueGrey.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(4),
+                              color: context.dndColors.infoContainer,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: context.dndColors.info.withValues(
+                                  alpha: 0.35,
+                                ),
+                              ),
                             ),
                             child: Text(
                               "${asi['attributes'][0]} +${asi['value']}",
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
+                                color: context.dndColors.onInfoContainer,
                               ),
                             ),
                           );
                         }).toList(),
                       ),
-
-                      // Toque normal: SELECCIONA Y AVANZA
                       onTap: () {
                         vm.setRace(race);
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                const BackgroundSelectionView(),
+                            builder: (_) => const BackgroundSelectionView(),
                           ),
                         );
                       },
-
-                      // Toque largo: MUESTRA DETALLES
                       onLongPress: () => _showRaceDetails(context, race),
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
-        ],
-      ),
     );
   }
 }

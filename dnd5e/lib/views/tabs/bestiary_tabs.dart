@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../view_models/bestiary/bestiary_view_model.dart';
+
 import '../../data/models/monster_model.dart';
-import '../../widgets/bestiary/monster_card.dart'; // Importa tu nueva tarjeta
+import '../../view_models/bestiary/bestiary_view_model.dart';
+import '../../widgets/bestiary/monster_card.dart';
 
 class BestiaryTab extends StatelessWidget {
   const BestiaryTab({super.key});
@@ -10,9 +11,7 @@ class BestiaryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<BestiaryViewModel>();
-
-    // Categorías oficiales de monstruos en D&D 5e
-    final List<String> tabTitles = [
+    const tabTitles = [
       'All',
       'Aberration',
       'Beast',
@@ -33,83 +32,80 @@ class BestiaryTab extends StatelessWidget {
     return DefaultTabController(
       length: tabTitles.length,
       child: Scaffold(
-        backgroundColor: Colors.white,
         appBar: AppBar(
-          title: const Text("Bestiary"),
-          backgroundColor: const Color(0xFFD32F2F), // Mismo rojo del compendio
-          foregroundColor: Colors.white,
-          bottom: TabBar(
+          title: const Text('Bestiary'),
+          bottom: const TabBar(
             isScrollable: true,
-            indicatorColor: Colors.white,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white70,
-            tabs: tabTitles.map((t) => Tab(text: t)).toList(),
+            tabs: [
+              Tab(text: 'All'),
+              Tab(text: 'Aberration'),
+              Tab(text: 'Beast'),
+              Tab(text: 'Celestial'),
+              Tab(text: 'Construct'),
+              Tab(text: 'Dragon'),
+              Tab(text: 'Elemental'),
+              Tab(text: 'Fey'),
+              Tab(text: 'Fiend'),
+              Tab(text: 'Giant'),
+              Tab(text: 'Humanoid'),
+              Tab(text: 'Monstrosity'),
+              Tab(text: 'Ooze'),
+              Tab(text: 'Plant'),
+              Tab(text: 'Undead'),
+            ],
           ),
         ),
         body: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
               child: TextField(
-                onChanged: (val) => vm.setSearchQuery(val),
-                decoration: InputDecoration(
+                onChanged: vm.setSearchQuery,
+                decoration: const InputDecoration(
                   hintText: 'Search creatures by name...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                  prefixIcon: Icon(Icons.search),
+                  contentPadding: EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
             ),
-
             Expanded(
               child: TabBarView(
                 children: List.generate(tabTitles.length, (index) {
-                  final currentTabType = tabTitles[index].toLowerCase();
-
-                  // Filtrar por la pestaña seleccionada
+                  final currentType = tabTitles[index].toLowerCase();
                   final monstersForTab = vm.filteredMonsters.where((monster) {
-                    if (index == 0) return true; // 'All' tab muestra todo
-                    final typeText = (monster['type'] ?? '')
+                    if (index == 0) return true;
+                    return (monster['type'] ?? '')
                         .toString()
-                        .toLowerCase();
-                    return typeText.contains(currentTabType);
+                        .toLowerCase()
+                        .contains(currentType);
                   }).toList();
 
-                  if (monstersForTab.isEmpty && !vm.isLoading) {
-                    return const Center(
-                      child: Text('No creatures found in this category.'),
-                    );
-                  }
-
                   if (vm.isLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFFD32F2F),
-                      ),
-                    );
+                    return const Center(child: CircularProgressIndicator());
                   }
 
                   if (vm.errorMessage != null && index == 0) {
                     return Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: const EdgeInsets.all(24),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.error_outline,
-                              color: Colors.red,
+                              color: Theme.of(context).colorScheme.error,
                               size: 48,
                             ),
                             const SizedBox(height: 16),
-                            Text(vm.errorMessage!, textAlign: TextAlign.center),
+                            Text(
+                              vm.errorMessage!,
+                              textAlign: TextAlign.center,
+                            ),
                             const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () =>
-                                  vm.fetchMonsters(), // Botón para reintentar
-                              child: const Text('Retry'),
+                            ElevatedButton.icon(
+                              onPressed: vm.fetchMonsters,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Retry'),
                             ),
                           ],
                         ),
@@ -117,19 +113,19 @@ class BestiaryTab extends StatelessWidget {
                     );
                   }
 
+                  if (monstersForTab.isEmpty) {
+                    return const Center(
+                      child: Text('No creatures found in this category.'),
+                    );
+                  }
+
                   return ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(12, 6, 12, 16),
                     itemCount: monstersForTab.length,
                     itemBuilder: (context, i) {
-                      // Parseamos el mapa json al Modelo
-                      final monsterModel = MonsterModel.fromJson(
-                        monstersForTab[i],
+                      return MonsterCard(
+                        monster: MonsterModel.fromJson(monstersForTab[i]),
                       );
-
-                      return MonsterCard(monster: monsterModel);
                     },
                   );
                 }),

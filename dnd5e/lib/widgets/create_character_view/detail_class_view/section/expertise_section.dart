@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../utils/app_theme.dart';
 import '../../../../view_models/character/character_skill_view_model.dart';
 
 class ExpertiseSection extends StatelessWidget {
@@ -29,11 +30,12 @@ class ExpertiseSection extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final options = availableProficiencies
-        .where((item) => item.trim().isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final options =
+        availableProficiencies
+            .where((item) => item.trim().isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
 
     final selected = skillVM.selectedExpertise;
     final canChooseThievesTools = options.contains(
@@ -57,9 +59,9 @@ class ExpertiseSection extends StatelessWidget {
         Text(
           canChooseThievesTools
               ? 'Choose $choiceCount proficient skills, or Thieves\' Tools. '
-                  'For each choice, your proficiency bonus is added twice.'
+                    'For each choice, your proficiency bonus is added twice.'
               : 'Choose $choiceCount proficient skills. '
-                  'For each choice, your proficiency bonus is added twice.',
+                    'For each choice, your proficiency bonus is added twice.',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 8),
@@ -78,13 +80,14 @@ class ExpertiseSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         if (options.isEmpty)
-          const Text(
+          Text(
             'Complete your skill proficiency selections first.',
-            style: TextStyle(color: Colors.redAccent),
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
           )
         else
           ...List.generate(choiceCount, (index) {
-            final current = selected.length > index && selected[index].isNotEmpty
+            final current =
+                selected.length > index && selected[index].isNotEmpty
                 ? selected[index]
                 : null;
 
@@ -95,8 +98,9 @@ class ExpertiseSection extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: DropdownButtonFormField<String>(
+                key: ValueKey('expertise-$index-$validCurrent'),
                 isExpanded: true,
-                value: validCurrent,
+                initialValue: validCurrent,
                 decoration: InputDecoration(
                   labelText: 'Expertise ${index + 1}',
                   border: const OutlineInputBorder(),
@@ -113,7 +117,9 @@ class ExpertiseSection extends StatelessWidget {
                     child: Text(
                       option,
                       style: TextStyle(
-                        color: selectedElsewhere ? Colors.grey : null,
+                        color: selectedElsewhere
+                            ? context.dndColors.subtleText
+                            : null,
                       ),
                     ),
                   );

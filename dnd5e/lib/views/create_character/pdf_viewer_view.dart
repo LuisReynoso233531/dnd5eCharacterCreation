@@ -46,15 +46,14 @@ class _PdfViewerViewState extends State<PdfViewerView> {
       return Scaffold(
         appBar: AppBar(
           title: Text(widget.title),
-          backgroundColor: AppTheme.primaryRed,
-        ),
+          ),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
               _error!,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red),
+              style: TextStyle(color: context.colors.error),
             ),
           ),
         ),
@@ -79,7 +78,6 @@ class _PdfViewerViewState extends State<PdfViewerView> {
               ),
           ],
         ),
-        backgroundColor: AppTheme.primaryRed,
         actions: [
           if (widget.showHomeButton)
             IconButton(

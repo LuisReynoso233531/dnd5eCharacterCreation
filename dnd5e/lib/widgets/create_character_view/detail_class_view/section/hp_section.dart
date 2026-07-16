@@ -1,26 +1,29 @@
 import 'package:flutter/material.dart';
-import '../../../../view_models/character/character_detail_class_view_model.dart';
+
 import '../../../../utils/app_theme.dart';
+import '../../../../view_models/character/character_detail_class_view_model.dart';
 
 Widget buildHPSection(
+  BuildContext context,
   DetailClassViewModel dvm,
   String? hitDiceRaw,
   int currentLevel,
 ) {
-  final int hitDieMax = dvm.parseHitDie(hitDiceRaw);
-  final int totalHP = dvm.calculateTotalHP();
-  final int conMod = dvm.conModifier;
+  final hitDieMax = dvm.parseHitDie(hitDiceRaw);
+  final totalHP = dvm.calculateTotalHP();
+  final conMod = dvm.conModifier;
 
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      // Tarjeta de total
       Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.red.shade700, Colors.red.shade400],
+            colors: context.isDarkMode
+                ? const [Color(0xFF8F1018), Color(0xFF5C1117)]
+                : [Colors.red.shade700, Colors.red.shade400],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -55,14 +58,12 @@ Widget buildHPSection(
             const Spacer(),
             Text(
               'Die: 1d$hitDieMax',
-              style: const TextStyle(color: Colors.white70, fontSize: 30),
+              style: const TextStyle(color: Colors.white70, fontSize: 18),
             ),
           ],
         ),
       ),
       const SizedBox(height: 14),
-
-      // Encabezado de columnas
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         child: Row(
@@ -71,11 +72,7 @@ Widget buildHPSection(
             const Expanded(
               child: Text(
                 'Roll',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.black45,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
               ),
             ),
             SizedBox(
@@ -83,9 +80,9 @@ Widget buildHPSection(
               child: Text(
                 'Con (${conMod >= 0 ? '+' : ''}$conMod)',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
-                  color: Colors.blueGrey,
+                  color: context.dndColors.info,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -97,7 +94,7 @@ Widget buildHPSection(
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 11,
-                  color: Colors.red.shade700,
+                  color: context.dndColors.danger,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -105,26 +102,24 @@ Widget buildHPSection(
           ],
         ),
       ),
-
-      // Filas por nivel
       Container(
         decoration: BoxDecoration(
-          color: Colors.grey.shade50,
+          color: context.dndColors.surfaceRaised,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: context.dndColors.border),
         ),
         child: Column(
           children: List.generate(currentLevel, (index) {
-            final int lvl = index + 1;
-            final int roll = dvm.hpRolls[lvl] ?? hitDieMax;
-            final bool isLvl1 = lvl == 1;
-            final int rowTotal = roll + conMod;
+            final level = index + 1;
+            final roll = dvm.hpRolls[level] ?? hitDieMax;
+            final isLevelOne = level == 1;
+            final rowTotal = roll + conMod;
 
             return Container(
               decoration: index < currentLevel - 1
                   ? BoxDecoration(
                       border: Border(
-                        bottom: BorderSide(color: Colors.grey.shade200),
+                        bottom: BorderSide(color: context.dndColors.border),
                       ),
                     )
                   : null,
@@ -133,13 +128,15 @@ Widget buildHPSection(
                 children: [
                   CircleAvatar(
                     radius: 14,
-                    backgroundColor: isLvl1
-                        ? AppTheme.primaryRed
-                        : Colors.grey.shade300,
+                    backgroundColor: isLevelOne
+                        ? context.colors.primary
+                        : context.dndColors.surfaceStrong,
                     child: Text(
-                      '$lvl',
+                      '$level',
                       style: TextStyle(
-                        color: isLvl1 ? Colors.white : Colors.black87,
+                        color: isLevelOne
+                            ? context.colors.onPrimary
+                            : context.colors.onSurface,
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -147,20 +144,20 @@ Widget buildHPSection(
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: isLvl1
+                    child: isLevelOne
                         ? Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.lock,
                                 size: 14,
-                                color: Colors.grey,
+                                color: context.dndColors.subtleText,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 '$roll (max)',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.grey,
+                                  color: context.dndColors.mutedText,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -174,17 +171,17 @@ Widget buildHPSection(
                                 height: 28,
                                 child: IconButton(
                                   padding: EdgeInsets.zero,
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.remove_circle_outline,
                                     size: 20,
-                                    color: Colors.redAccent,
+                                    color: context.dndColors.danger,
                                   ),
                                   onPressed: roll > 1
                                       ? () => dvm.updateRoll(
-                                          lvl,
-                                          roll - 1,
-                                          hitDieMax,
-                                        )
+                                            level,
+                                            roll - 1,
+                                            hitDieMax,
+                                          )
                                       : null,
                                 ),
                               ),
@@ -204,17 +201,17 @@ Widget buildHPSection(
                                 height: 28,
                                 child: IconButton(
                                   padding: EdgeInsets.zero,
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.add_circle_outline,
                                     size: 20,
-                                    color: Colors.green,
+                                    color: context.dndColors.success,
                                   ),
                                   onPressed: roll < hitDieMax
                                       ? () => dvm.updateRoll(
-                                          lvl,
-                                          roll + 1,
-                                          hitDieMax,
-                                        )
+                                            level,
+                                            roll + 1,
+                                            hitDieMax,
+                                          )
                                       : null,
                                 ),
                               ),
@@ -228,8 +225,8 @@ Widget buildHPSection(
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: conMod >= 0
-                            ? Colors.blueGrey
-                            : Colors.deepOrange,
+                            ? context.dndColors.info
+                            : context.dndColors.warning,
                         fontWeight: FontWeight.w500,
                         fontSize: 14,
                       ),
@@ -241,7 +238,7 @@ Widget buildHPSection(
                       '$rowTotal',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.red.shade700,
+                        color: context.dndColors.danger,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
@@ -260,7 +257,7 @@ Widget buildHPSection(
           "Adjust each level's roll to match your actual dice results.",
           style: TextStyle(
             fontSize: 11,
-            color: Colors.grey.shade500,
+            color: context.dndColors.mutedText,
             fontStyle: FontStyle.italic,
           ),
         ),

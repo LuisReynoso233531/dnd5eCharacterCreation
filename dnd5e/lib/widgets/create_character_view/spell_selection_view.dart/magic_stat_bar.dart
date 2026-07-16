@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+
 import '../../../data/models/spell_model.dart';
+import '../../../utils/app_theme.dart';
 import '../../../view_models/character/character_spell_view_model.dart';
-import './slots_summary.dart';
+import 'slots_summary.dart';
 
 Widget magicStatsBar(
+  BuildContext context,
   String classSlug,
   String ability,
   int spellMod,
@@ -14,34 +17,38 @@ Widget magicStatsBar(
   SpellcastingInfo info,
   CharacterSpellViewModel spellVM,
 ) {
+  final background = context.isDarkMode
+      ? context.dndColors.surfaceStrong
+      : const Color(0xFF25272D);
+
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-    color: Colors.grey.shade900,
+    color: background,
     child: Column(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+        Wrap(
+          spacing: 14,
+          runSpacing: 6,
+          alignment: WrapAlignment.center,
           children: [
-            _statChip(Icons.auto_fix_high, ability, Colors.purple.shade200),
+            _statChip(Icons.auto_fix_high, ability, const Color(0xFFD7B3FF)),
             _statChip(
               Icons.add_circle_outline,
               '${attackBonus >= 0 ? '+' : ''}$attackBonus Atk',
-              Colors.orange.shade200,
+              const Color(0xFFFFC38A),
             ),
-            _statChip(Icons.shield, 'DC $saveDC', Colors.blue.shade200),
+            _statChip(Icons.shield, 'DC $saveDC', const Color(0xFFA9D3FF)),
             _statChip(
               Icons.menu_book,
               '${spellVM.totalCantripsTowardLimit}/${info.cantripsKnown} cantrips  '
               '${spellVM.totalNonCantripsTowardLimit}/$spellsKnown spells'
               '${spellVM.totalAutomaticSpells > 0 ? ' +${spellVM.totalAutomaticSpells} granted' : ''}',
-              Colors.green.shade200,
+              const Color(0xFFA8E9B9),
             ),
           ],
         ),
         const SizedBox(height: 6),
         slotsSummary(classSlug, info),
-
-        // ── Barra de carga progresiva ──────────────────────────────
         if (!spellVM.isFullyLoaded) ...[
           const SizedBox(height: 6),
           Row(
@@ -52,7 +59,9 @@ Widget magicStatsBar(
                   child: LinearProgressIndicator(
                     value: spellVM.loadProgress,
                     backgroundColor: Colors.white12,
-                    valueColor: AlwaysStoppedAnimation(Colors.purple.shade300),
+                    valueColor: const AlwaysStoppedAnimation(
+                      Color(0xFFD7B3FF),
+                    ),
                     minHeight: 4,
                   ),
                 ),
@@ -60,7 +69,7 @@ Widget magicStatsBar(
               const SizedBox(width: 8),
               Text(
                 '${(spellVM.loadProgress * 100).toInt()}% spells',
-                style: const TextStyle(color: Colors.white38, fontSize: 10),
+                style: const TextStyle(color: Colors.white60, fontSize: 10),
               ),
             ],
           ),
@@ -71,13 +80,17 @@ Widget magicStatsBar(
 }
 
 Widget _statChip(IconData icon, String label, Color color) => Row(
-  mainAxisSize: MainAxisSize.min,
-  children: [
-    Icon(icon, size: 13, color: color),
-    const SizedBox(width: 3),
-    Text(
-      label,
-      style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
-    ),
-  ],
-);
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 13, color: color),
+        const SizedBox(width: 3),
+        Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );

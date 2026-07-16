@@ -1,24 +1,39 @@
 import 'package:flutter/material.dart';
+
 import '../../data/models/monster_model.dart';
+import '../../utils/app_theme.dart';
 
 class MonsterCard extends StatelessWidget {
   final MonsterModel monster;
 
   const MonsterCard({super.key, required this.monster});
 
-  Color _getTypeColor(String type) {
+  Color _getTypeColor(String type, bool isDark) {
     final t = type.toLowerCase();
-    if (t.contains('dragon')) return Colors.red.shade700;
-    if (t.contains('undead')) return Colors.purple.shade900;
-    if (t.contains('fiend')) return Colors.deepOrange.shade800;
-    if (t.contains('beast')) return Colors.brown.shade600;
-    if (t.contains('aberration')) return Colors.deepPurple;
-    if (t.contains('celestial')) return Colors.amber.shade600;
-    if (t.contains('construct')) return Colors.blueGrey;
-    return Colors.teal.shade700;
+    if (t.contains('dragon')) {
+      return isDark ? const Color(0xFFFF8A86) : Colors.red.shade700;
+    }
+    if (t.contains('undead')) {
+      return isDark ? const Color(0xFFD8A7FF) : Colors.purple.shade800;
+    }
+    if (t.contains('fiend')) {
+      return isDark ? const Color(0xFFFFA07A) : Colors.deepOrange.shade800;
+    }
+    if (t.contains('beast')) {
+      return isDark ? const Color(0xFFD7B899) : Colors.brown.shade600;
+    }
+    if (t.contains('aberration')) {
+      return isDark ? const Color(0xFFC7A4FF) : Colors.deepPurple;
+    }
+    if (t.contains('celestial')) {
+      return isDark ? const Color(0xFFFFD36D) : Colors.amber.shade700;
+    }
+    if (t.contains('construct')) {
+      return isDark ? const Color(0xFFB5C5CF) : Colors.blueGrey;
+    }
+    return isDark ? const Color(0xFF7DDBD0) : Colors.teal.shade700;
   }
 
-  // Calcula el modificador estilo D&D, ej: 16 -> +3
   String _getMod(int score) {
     final mod = ((score - 10) / 2).floor();
     return mod >= 0 ? '+$mod' : '$mod';
@@ -26,25 +41,26 @@ class MonsterCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _getTypeColor(monster.type);
+    final accent = _getTypeColor(monster.type, context.isDarkMode);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 160),
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300, width: 1),
+        color: context.dndColors.surfaceRaised,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.dndColors.border),
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           leading: Container(
-            width: 40,
-            height: 40,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
+              color: accent.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: accent.withValues(alpha: 0.35)),
             ),
             child: Center(
               child: Text(
@@ -53,7 +69,7 @@ class MonsterCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: color,
+                  color: accent,
                 ),
               ),
             ),
@@ -64,94 +80,96 @@ class MonsterCard extends StatelessWidget {
           ),
           subtitle: Text(
             '${monster.size} ${monster.type}, ${monster.alignment}',
-            style: const TextStyle(fontSize: 11, color: Colors.black54, fontStyle: FontStyle.italic),
+            style: TextStyle(
+              fontSize: 11,
+              color: context.dndColors.mutedText,
+              fontStyle: FontStyle.italic,
+            ),
           ),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           children: [
             const Divider(height: 20),
-            
-            // ── Bloque Superior (AC, HP, Velocidad) ──
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _quickStat(Icons.shield, 'AC ${monster.armorClass}', color),
-                _quickStat(Icons.favorite, 'HP ${monster.hitPoints}', color),
-                _quickStat(Icons.casino, monster.hitDice, color),
+                _quickStat(context, Icons.shield, 'AC ${monster.armorClass}', accent),
+                _quickStat(context, Icons.favorite, 'HP ${monster.hitPoints}', accent),
+                _quickStat(context, Icons.casino, monster.hitDice, accent),
               ],
             ),
             const SizedBox(height: 12),
-
-            // ── Puntuaciones de Atributos (STR, DEX, CON, INT, WIS, CHA) ──
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: 9),
               decoration: BoxDecoration(
-                border: Border.symmetric(horizontal: BorderSide(color: color.withOpacity(0.3), width: 1.5)),
+                color: context.dndColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: accent.withValues(alpha: 0.28)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _statBox('STR', monster.strength),
-                  _statBox('DEX', monster.dexterity),
-                  _statBox('CON', monster.constitution),
-                  _statBox('INT', monster.intelligence),
-                  _statBox('WIS', monster.wisdom),
-                  _statBox('CHA', monster.charisma),
+                  _statBox(context, 'STR', monster.strength),
+                  _statBox(context, 'DEX', monster.dexterity),
+                  _statBox(context, 'CON', monster.constitution),
+                  _statBox(context, 'INT', monster.intelligence),
+                  _statBox(context, 'WIS', monster.wisdom),
+                  _statBox(context, 'CHA', monster.charisma),
                 ],
               ),
             ),
             const SizedBox(height: 12),
-
-            // ── Defensas y Sentidos ──
-            _infoRow('Vulnerabilities', monster.damageVulnerabilities, Colors.red.shade700),
-            _infoRow('Resistances', monster.damageResistances, Colors.black87),
-            _infoRow('Immunities', monster.damageImmunities, Colors.black87),
-            _infoRow('Condition Immunities', monster.conditionImmunities, Colors.black87),
-            _infoRow('Senses', monster.senses, Colors.black87),
-            _infoRow('Languages', monster.languages, Colors.black87),
-            
+            _infoRow(
+              context,
+              'Vulnerabilities',
+              monster.damageVulnerabilities,
+              context.dndColors.danger,
+            ),
+            _infoRow(context, 'Resistances', monster.damageResistances),
+            _infoRow(context, 'Immunities', monster.damageImmunities),
+            _infoRow(
+              context,
+              'Condition Immunities',
+              monster.conditionImmunities,
+            ),
+            _infoRow(context, 'Senses', monster.senses),
+            _infoRow(context, 'Languages', monster.languages),
             const SizedBox(height: 8),
-
-            // ── Rasgos Especiales (Traits) ──
             if (monster.specialAbilities.isNotEmpty) ...[
               const Divider(),
-              _sectionTitle('Traits', color),
-              _buildActionList(monster.specialAbilities),
+              _sectionTitle('Traits', accent),
+              _buildActionList(context, monster.specialAbilities),
             ],
-
-            // ── Acciones (Actions) ──
             if (monster.actions.isNotEmpty) ...[
               const Divider(),
-              _sectionTitle('Actions', color),
-              _buildActionList(monster.actions),
+              _sectionTitle('Actions', accent),
+              _buildActionList(context, monster.actions),
             ],
-
-            // ── Acciones Adicionales (Bonus Actions) ──
             if (monster.bonusActions.isNotEmpty) ...[
               const Divider(),
-              _sectionTitle('Bonus Actions', color),
-              _buildActionList(monster.bonusActions),
+              _sectionTitle('Bonus Actions', accent),
+              _buildActionList(context, monster.bonusActions),
             ],
-
-            // ── Reacciones (Reactions) ──
             if (monster.reactions.isNotEmpty) ...[
               const Divider(),
-              _sectionTitle('Reactions', color),
-              _buildActionList(monster.reactions),
+              _sectionTitle('Reactions', accent),
+              _buildActionList(context, monster.reactions),
             ],
-
-            // ── Acciones Legendarias (Legendary Actions) ──
             if (monster.legendaryActions.isNotEmpty) ...[
               const Divider(),
-              _sectionTitle('Legendary Actions', color),
+              _sectionTitle('Legendary Actions', accent),
               if (monster.legendaryDesc.isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
+                  padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
                     monster.legendaryDesc,
-                    style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.black87),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                      color: context.dndColors.mutedText,
+                    ),
                   ),
                 ),
-              _buildActionList(monster.legendaryActions),
+              _buildActionList(context, monster.legendaryActions),
             ],
           ],
         ),
@@ -159,59 +177,91 @@ class MonsterCard extends StatelessWidget {
     );
   }
 
-  // Widget para (AC, HP, Dados)
-  Widget _quickStat(IconData icon, String label, Color color) {
+  Widget _quickStat(
+    BuildContext context,
+    IconData icon,
+    String label,
+    Color accent,
+  ) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: color),
+        Icon(icon, size: 16, color: accent),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+        ),
       ],
     );
   }
 
-  // Widget para STR, DEX, CON...
-  Widget _statBox(String label, int score) {
+  Widget _statBox(BuildContext context, String label, int score) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black54)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: context.dndColors.mutedText,
+          ),
+        ),
         const SizedBox(height: 2),
-        Text('$score', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
-        Text('(${_getMod(score)})', style: const TextStyle(fontSize: 11, color: Colors.black54)),
+        Text(
+          '$score',
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        ),
+        Text(
+          '(${_getMod(score)})',
+          style: TextStyle(fontSize: 11, color: context.dndColors.mutedText),
+        ),
       ],
     );
   }
 
-  // Filas para Inmunidades, Resistencias, etc.
-  Widget _infoRow(String title, String value, Color valueColor) {
+  Widget _infoRow(
+    BuildContext context,
+    String title,
+    String value, [
+    Color? valueColor,
+  ]) {
     if (value.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: RichText(
         text: TextSpan(
-          style: const TextStyle(fontSize: 12, color: Colors.black87),
+          style: TextStyle(fontSize: 12, color: context.colors.onSurface),
           children: [
-            TextSpan(text: '$title: ', style: const TextStyle(fontWeight: FontWeight.bold)),
-            TextSpan(text: value, style: TextStyle(color: valueColor)),
+            TextSpan(
+              text: '$title: ',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextSpan(
+              text: value,
+              style: TextStyle(color: valueColor ?? context.dndColors.mutedText),
+            ),
           ],
         ),
       ),
     );
   }
 
-  // Título de Sección estilizado
-  Widget _sectionTitle(String title, Color color) {
+  Widget _sectionTitle(String title, Color accent) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, top: 4),
       child: Text(
         title,
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.5),
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w900,
+          color: accent,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }
 
-  // Iterador para imprimir listas de acciones
-  Widget _buildActionList(List<dynamic> list) {
+  Widget _buildActionList(BuildContext context, List<dynamic> list) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: list.map((item) {
@@ -219,9 +269,19 @@ class MonsterCard extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 8),
           child: RichText(
             text: TextSpan(
-              style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1.4),
+              style: TextStyle(
+                fontSize: 13,
+                color: context.colors.onSurface,
+                height: 1.4,
+              ),
               children: [
-                TextSpan(text: '${item['name']}. ', style: const TextStyle(fontWeight: FontWeight.bold, fontStyle: FontStyle.italic)),
+                TextSpan(
+                  text: '${item['name']}. ',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
                 TextSpan(text: item['desc']),
               ],
             ),

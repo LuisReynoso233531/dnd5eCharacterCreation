@@ -17,14 +17,14 @@ class ArmorClassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = context.colors.primary;
+    final darkerPrimary = Color.lerp(primary, Colors.black, 0.34)!;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            AppTheme.primaryRed.withOpacity(0.85),
-            AppTheme.primaryRed.withOpacity(0.45),
-          ],
+          colors: [primary, darkerPrimary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -56,14 +56,14 @@ class ArmorClassCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _Chip(label: equippedArmor?.name ?? 'Unarmored'),
+              _ArmorChip(label: equippedArmor?.name ?? 'Unarmored'),
               if (equippedShield != null) ...[
                 const SizedBox(height: 4),
-                _Chip(label: '+ ${equippedShield!.name}'),
+                _ArmorChip(label: '+ ${equippedShield!.name}'),
               ],
               if (equippedArmor?.stealthDisadvantage == true) ...[
                 const SizedBox(height: 4),
-                const _Chip(label: 'Stealth disadv.'),
+                const _ArmorChip(label: 'Stealth disadv.'),
               ],
             ],
           ),
@@ -73,17 +73,17 @@ class ArmorClassCard extends StatelessWidget {
   }
 }
 
-class _Chip extends StatelessWidget {
+class _ArmorChip extends StatelessWidget {
   final String label;
 
-  const _Chip({required this.label});
+  const _ArmorChip({required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(

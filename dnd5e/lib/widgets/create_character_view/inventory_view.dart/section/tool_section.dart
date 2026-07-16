@@ -53,8 +53,7 @@ class ToolSection extends StatelessWidget {
             const SizedBox(width: 8),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryRed,
-                foregroundColor: Colors.white,
+                        foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),

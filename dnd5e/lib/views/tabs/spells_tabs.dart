@@ -1,8 +1,9 @@
+import 'package:dnd5e/data/models/spell_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../view_models/spell/spells_view_model.dart';
-import 'package:dnd5e/data/models/spell_model.dart'; 
-import '../../widgets/create_character_view/spell_selection_view.dart/spell_card.dart'; 
+import '../../widgets/create_character_view/spell_selection_view.dart/spell_card.dart';
 
 class SpellsTab extends StatelessWidget {
   const SpellsTab({super.key});
@@ -10,72 +11,82 @@ class SpellsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<SpellsViewModel>();
-    
-    final List<String> tabTitles = [
-      'Cantrips', 'Level 1', 'Level 2', 'Level 3', 'Level 4', 
-      'Level 5', 'Level 6', 'Level 7', 'Level 8', 'Level 9'
+    const tabTitles = [
+      'Cantrips',
+      'Level 1',
+      'Level 2',
+      'Level 3',
+      'Level 4',
+      'Level 5',
+      'Level 6',
+      'Level 7',
+      'Level 8',
+      'Level 9',
     ];
 
     return DefaultTabController(
       length: tabTitles.length,
       child: Scaffold(
-        backgroundColor: Colors.white,
         appBar: AppBar(
-          title: const Text("Spell Compendium"),
-          backgroundColor: const Color(0xFFD32F2F),
-          foregroundColor: Colors.white,
-          bottom: TabBar(
+          title: const Text('Spell Compendium'),
+          bottom: const TabBar(
             isScrollable: true,
-            indicatorColor: Colors.white,
-            tabs: tabTitles.map((t) => Tab(text: t)).toList(),
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white,
+            tabs: [
+              Tab(text: 'Cantrips'),
+              Tab(text: 'Level 1'),
+              Tab(text: 'Level 2'),
+              Tab(text: 'Level 3'),
+              Tab(text: 'Level 4'),
+              Tab(text: 'Level 5'),
+              Tab(text: 'Level 6'),
+              Tab(text: 'Level 7'),
+              Tab(text: 'Level 8'),
+              Tab(text: 'Level 9'),
+            ],
           ),
         ),
         body: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
               child: TextField(
-                onChanged: (val) => vm.setSearchQuery(val),
-                decoration: InputDecoration(
+                onChanged: vm.setSearchQuery,
+                decoration: const InputDecoration(
                   hintText: 'Search spells...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  prefixIcon: Icon(Icons.search),
                 ),
               ),
             ),
-            
             Expanded(
               child: TabBarView(
                 children: List.generate(tabTitles.length, (index) {
                   final spellsForTab = vm.filteredSpells.where((spell) {
-                    final levelText = (spell['level'] ?? '').toString().toLowerCase();
+                    final levelText =
+                        (spell['level'] ?? '').toString().toLowerCase();
                     if (index == 0) return levelText.contains('cantrip');
-                    return levelText.contains('${index}st') || 
-                           levelText.contains('${index}nd') || 
-                           levelText.contains('${index}rd') || 
-                           levelText.contains('${index}th');
+                    return levelText.contains('${index}st') ||
+                        levelText.contains('${index}nd') ||
+                        levelText.contains('${index}rd') ||
+                        levelText.contains('${index}th');
                   }).toList();
-
-                  if (spellsForTab.isEmpty && !vm.isLoading) {
-                    return const Center(child: Text('No spells found.'));
-                  }
 
                   if (vm.isLoading) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                
+
+                  if (spellsForTab.isEmpty) {
+                    return const Center(child: Text('No spells found.'));
+                  }
+
                   return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.fromLTRB(12, 6, 12, 16),
                     itemCount: spellsForTab.length,
                     itemBuilder: (context, i) {
-                      final Map<String, dynamic> rawSpell = spellsForTab[i];
-                      final spellModel = SpellModel.fromJson(rawSpell);
-
+                      final rawSpell =
+                          Map<String, dynamic>.from(spellsForTab[i]);
                       return SpellCard(
-                        spell: spellModel,      
-                        isCompendiumMode: true,  
+                        spell: SpellModel.fromJson(rawSpell),
+                        isCompendiumMode: true,
                       );
                     },
                   );

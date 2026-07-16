@@ -11,5 +11,7 @@ const schoolColors = {
   'transmutation': Color(0xFF558B2F),
 };
 
-Color schoolColor(String school) =>
-    schoolColors[school.toLowerCase()] ?? Colors.blueGrey;
+Color schoolColor(String school, {bool isDark = false}) {
+  final base = schoolColors[school.toLowerCase()] ?? Colors.blueGrey;
+  return isDark ? Color.lerp(base, Colors.white, 0.38)! : base;
+}

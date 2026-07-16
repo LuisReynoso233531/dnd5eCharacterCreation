@@ -84,8 +84,8 @@ class _CharacterTabState extends State<CharacterTab> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryRed,
-              foregroundColor: Colors.white,
+              backgroundColor: context.colors.primary,
+              foregroundColor: context.colors.onPrimary,
             ),
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Delete'),
@@ -131,13 +131,10 @@ class _CharacterTabState extends State<CharacterTab> {
                 children: [
                   ElevatedButton.icon(
                     onPressed: _openCreateFlow,
-                    icon: const Icon(Icons.add, color: Colors.white),
-                    label: const Text(
-                      'Create',
-                      style: TextStyle(color: Colors.white),
-                    ),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Create'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryRed,
+                      backgroundColor: context.colors.primary,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 12,
@@ -187,8 +184,8 @@ class _CharacterTabState extends State<CharacterTab> {
                                   leading: Icon(
                                     Icons.picture_as_pdf,
                                     color: exists
-                                        ? AppTheme.primaryRed
-                                        : Colors.grey,
+                                        ? context.colors.primary
+                                        : context.dndColors.subtleText,
                                   ),
                                   title: Text(
                                     sheet.displayName,

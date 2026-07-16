@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../utils/app_theme.dart';
+
 class CharacterSheetInputField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
@@ -33,7 +35,7 @@ class CharacterSheetInputField extends StatelessWidget {
         prefixIcon: Icon(icon, size: 18),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: context.dndColors.surfaceRaised,
         isDense: true,
       ),
       style: const TextStyle(fontSize: 13),

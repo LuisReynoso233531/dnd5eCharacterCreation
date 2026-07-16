@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // NECESARIO para context.read()
-import '../../../../view_models/character/character_detail_class_view_model.dart';
-import '../../../../view_models/character/character_subclass_view_model.dart'; // IMPORTANTE
-import '../../../../view_models/character/character_view_model.dart'; // IMPORTANTE
+import 'package:provider/provider.dart';
+
 import '../../../../utils/app_theme.dart';
+import '../../../../view_models/character/character_detail_class_view_model.dart';
+import '../../../../view_models/character/character_subclass_view_model.dart';
+import '../../../../view_models/character/character_view_model.dart';
 
 Widget archetypeCard(
   BuildContext context, {
@@ -11,23 +12,22 @@ Widget archetypeCard(
   required DetailClassViewModel dvm,
   required bool canChoose,
 }) {
-  final selSlug = dvm.selectedArchetype?['slug'] ?? '';
-  final isSelected = selSlug.isNotEmpty && selSlug == arch['slug'];
+  final selectedSlug = dvm.selectedArchetype?['slug'] ?? '';
+  final isSelected = selectedSlug.isNotEmpty && selectedSlug == arch['slug'];
   final name = arch['name'] ?? '';
   final desc = (arch['desc'] ?? '').toString();
-  final dotIdx = desc.indexOf('.');
-  final shortDesc = dotIdx > 0 && dotIdx < 150
-      ? desc.substring(0, dotIdx + 1)
+  final dotIndex = desc.indexOf('.');
+  final shortDesc = dotIndex > 0 && dotIndex < 150
+      ? desc.substring(0, dotIndex + 1)
       : desc.length > 110
-      ? '${desc.substring(0, 110)}…'
-      : desc;
+          ? '${desc.substring(0, 110)}…'
+          : desc;
 
   void handleSelection() {
     if (!canChoose) return;
 
     final subclassVM = context.read<CharacterSubclassViewModel>();
     final mainVM = context.read<CreateCharacterViewModel>();
-
     final existingSkills = <String>[
       ...mainVM.skillVM.classFixedSkills,
       ...mainVM.skillVM.bgFixedSkills,
@@ -37,18 +37,20 @@ Widget archetypeCard(
     subclassVM.setArchetype(isSelected ? null : arch, existingSkills);
   }
 
+  final selectedColor = context.colors.primary;
+
   return GestureDetector(
-    onTap: handleSelection, // <-- Se actualizó para usar el nuevo método
+    onTap: handleSelection,
     child: AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: isSelected
-            ? AppTheme.primaryRed.withOpacity(0.06)
-            : Colors.white,
+            ? context.colors.primaryContainer.withValues(alpha: 0.48)
+            : context.dndColors.surfaceRaised,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isSelected ? AppTheme.primaryRed : Colors.grey.shade300,
+          color: isSelected ? selectedColor : context.dndColors.border,
           width: isSelected ? 2 : 1,
         ),
       ),
@@ -58,19 +60,21 @@ Widget archetypeCard(
           leading: CircleAvatar(
             radius: 18,
             backgroundColor: isSelected
-                ? AppTheme.primaryRed
-                : Colors.grey.shade100,
+                ? selectedColor
+                : context.dndColors.surfaceStrong,
             child: Icon(
               isSelected ? Icons.check : Icons.shield_outlined,
               size: 16,
-              color: isSelected ? Colors.white : Colors.grey,
+              color: isSelected
+                  ? context.colors.onPrimary
+                  : context.dndColors.mutedText,
             ),
           ),
           title: Text(
             name,
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: isSelected ? AppTheme.primaryRed : Colors.black87,
+              color: isSelected ? selectedColor : context.colors.onSurface,
               fontSize: 15,
             ),
           ),
@@ -78,7 +82,10 @@ Widget archetypeCard(
             shortDesc,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 12, color: Colors.black54),
+            style: TextStyle(
+              fontSize: 12,
+              color: context.dndColors.mutedText,
+            ),
           ),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           children: [
@@ -90,14 +97,13 @@ Widget archetypeCard(
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isSelected
-                        ? Colors.grey
-                        : AppTheme.primaryRed,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        ? context.dndColors.surfaceStrong
+                        : selectedColor,
+                    foregroundColor: isSelected
+                        ? context.colors.onSurface
+                        : context.colors.onPrimary,
                   ),
-                  onPressed: handleSelection, // <-- EL BOTÓN AHORA TAMBIÉN USA EL NUEVO MÉTODO
+                  onPressed: handleSelection,
                   icon: Icon(isSelected ? Icons.close : Icons.check, size: 16),
                   label: Text(isSelected ? 'Deselect' : 'Select $name'),
                 ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../../../utils/app_theme.dart';
 import '../../../view_models/character/character_view_model.dart';
 import '../../../views/create_character/dialogs/stats_dialogs.dart';
 
@@ -18,13 +20,23 @@ class LevelAndRollCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("Character Level", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Character Level',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 DropdownButton<int>(
                   value: vm.level,
-                  items: List.generate(20, (i) => i + 1)
-                      .map((l) => DropdownMenuItem(value: l, child: Text("Lvl $l")))
+                  items: List.generate(20, (index) => index + 1)
+                      .map(
+                        (level) => DropdownMenuItem<int>(
+                          value: level,
+                          child: Text('Lvl $level'),
+                        ),
+                      )
                       .toList(),
-                  onChanged: (val) => vm.updateLevel(val!),
+                  onChanged: (value) {
+                    if (value != null) vm.updateLevel(value);
+                  },
                 ),
               ],
             ),
@@ -33,11 +45,11 @@ class LevelAndRollCard extends StatelessWidget {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: () => StatsDialogs.showConfirmRoll(context, vm),
-                icon: const Icon(Icons.casino, color: Colors.red),
-                label: const Text("Roll Random Stats (4d6 drop lowest)"),
+                icon: const Icon(Icons.casino),
+                label: const Text('Roll Random Stats (4d6 drop lowest)'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red,
-                  side: const BorderSide(color: Colors.red),
+                  foregroundColor: context.colors.primary,
+                  side: BorderSide(color: context.colors.primary),
                 ),
               ),
             ),

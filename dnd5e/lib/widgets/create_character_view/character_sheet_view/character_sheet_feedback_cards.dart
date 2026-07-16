@@ -16,18 +16,18 @@ class CharacterSheetErrorCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.red.shade50,
+        color: context.dndColors.dangerContainer,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.red.shade300),
+        border: Border.all(color: context.dndColors.danger),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, color: Colors.red, size: 18),
+          Icon(Icons.error_outline, color: context.dndColors.onDangerContainer, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(color: Colors.red, fontSize: 13),
+              style: TextStyle(color: context.dndColors.onDangerContainer, fontSize: 13),
             ),
           ),
         ],
@@ -62,21 +62,21 @@ class CharacterSheetSuccessCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.green.shade50,
+        color: context.dndColors.successContainer,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.green.shade300),
+        border: Border.all(color: context.dndColors.success),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.green, size: 20),
+              Icon(Icons.check_circle, color: context.dndColors.onSuccessContainer, size: 20),
               SizedBox(width: 8),
               Text(
                 'Sheet Generated!',
                 style: TextStyle(
-                  color: Colors.green,
+                  color: context.dndColors.onSuccessContainer,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -91,7 +91,7 @@ class CharacterSheetSuccessCard extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: Colors.green.shade700,
+              color: context.dndColors.onSuccessContainer,
               fontSize: 11,
               fontFamily: 'monospace',
             ),
@@ -104,8 +104,7 @@ class CharacterSheetSuccessCard extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryRed,
-                foregroundColor: Colors.white,
+                        foregroundColor: Colors.white,
               ),
               onPressed: onPreview,
               icon: const Icon(Icons.picture_as_pdf, size: 18),
@@ -121,7 +120,7 @@ class CharacterSheetSuccessCard extends StatelessWidget {
               Expanded(
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: context.dndColors.success,
                     foregroundColor: Colors.white,
                   ),
                   onPressed: onShare,

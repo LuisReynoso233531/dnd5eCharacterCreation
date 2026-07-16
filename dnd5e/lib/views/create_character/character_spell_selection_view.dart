@@ -165,12 +165,11 @@ class _CharacterSpellSelectionViewState
       return Scaffold(
         appBar: AppBar(
           title: const Text('Spells'),
-          backgroundColor: AppTheme.primaryRed,
-        ),
-        body: const Center(
+          ),
+        body: Center(
           child: Text(
             'This class or subclass does not have spellcasting at this level.',
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(color: context.dndColors.mutedText),
           ),
         ),
       );
@@ -186,12 +185,11 @@ class _CharacterSpellSelectionViewState
       return Scaffold(
         appBar: AppBar(
           title: const Text('Spells'),
-          backgroundColor: AppTheme.primaryRed,
-        ),
-        body: const Center(
+          ),
+        body: Center(
           child: Text(
             'No spells are available at this level.',
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(color: context.dndColors.mutedText),
           ),
         ),
       );
@@ -224,7 +222,6 @@ class _CharacterSpellSelectionViewState
     return Scaffold(
       appBar: AppBar(
         title: Text('Spell Selection: ${source.displayName} Lv${vm.level}'),
-        backgroundColor: AppTheme.primaryRed,
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -250,8 +247,8 @@ class _CharacterSpellSelectionViewState
                     ),
                     decoration: BoxDecoration(
                       color: selected >= maximum
-                          ? Colors.red.withOpacity(0.5)
-                          : Colors.white.withOpacity(0.25),
+                          ? Colors.red.withValues(alpha: 0.5)
+                          : Colors.white.withValues(alpha: 0.25),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -269,10 +266,11 @@ class _CharacterSpellSelectionViewState
           }).toList(),
         ),
       ),
-      bottomNavigationBar: _buildBottomBar(vm, spellVM),
+      bottomNavigationBar: _buildBottomBar(context, vm, spellVM),
       body: Column(
         children: [
           magicStatsBar(
+            context,
             source.rulesSlug,
             spellAbility,
             spellMod,
@@ -287,12 +285,12 @@ class _CharacterSpellSelectionViewState
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              color: Colors.amber.shade100,
+              color: context.dndColors.warningContainer,
               child: Text(
                 'Could not find these granted spells in the API: '
                 '${spellVM.unresolvedAutomaticSpellNames.join(', ')}',
                 style: TextStyle(
-                  color: Colors.amber.shade900,
+                  color: context.dndColors.onWarningContainer,
                   fontSize: 11,
                 ),
               ),
@@ -344,6 +342,7 @@ class _CharacterSpellSelectionViewState
   }
 
   Widget _buildBottomBar(
+    BuildContext context,
     CreateCharacterViewModel vm,
     CharacterSpellViewModel spellVM,
   ) {
@@ -359,7 +358,7 @@ class _CharacterSpellSelectionViewState
               '${spellVM.totalNonCantripsTowardLimit} spell'
               '${spellVM.totalNonCantripsTowardLimit != 1 ? 's' : ''} selected'
               '${spellVM.totalAutomaticSpells > 0 ? '  ·  ${spellVM.totalAutomaticSpells} granted' : ''}',
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+              style: TextStyle(color: context.dndColors.mutedText, fontSize: 12),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
@@ -368,8 +367,8 @@ class _CharacterSpellSelectionViewState
               height: 50,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
-                  foregroundColor: Colors.white,
+                  backgroundColor: context.dndColors.success,
+                  foregroundColor: context.dndColors.onSuccess,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
