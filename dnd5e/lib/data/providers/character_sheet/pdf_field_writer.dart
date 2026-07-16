@@ -95,38 +95,47 @@ class PdfFieldWriter {
     field.text = CharacterSheetTextUtils.cleanPdfText(value);
   }
 
-  void fillTextAcrossFields({
-    required String text,
-    required List<String> fieldNames,
-    double fontSize = 4.5,
-    Map<String, int> reservedBottomLinesByField = const {},
-  }) {
-    var remaining = CharacterSheetTextUtils.cleanPdfText(text);
+  String fillTextAcrossFields({
+  required String text,
+  required List<String> fieldNames,
+  double fontSize = 4.5,
+  Map<String, int> reservedBottomLinesByField = const {},
+}) {
+  var remaining = CharacterSheetTextUtils.cleanPdfText(text);
 
-    for (final fieldName in fieldNames) {
-      final field = textField(fieldName);
-      if (field == null) continue;
+  for (final fieldName in fieldNames) {
+    final field = textField(fieldName);
 
-      if (remaining.isEmpty) {
-        setMultilineField(field, '', fontSize: fontSize);
-        continue;
-      }
+    if (field == null) {
+      continue;
+    }
 
-      final result = PdfTextFlow.takeMeasuredTextForField(
-        remaining,
+    if (remaining.isEmpty) {
+      setMultilineField(
         field,
-        fontSize,
-        reservedBottomLines: reservedBottomLinesByField[fieldName] ?? 0,
+        '',
+        fontSize: fontSize,
       );
-
-      setMultilineField(field, result[0], fontSize: fontSize);
-      remaining = result[1];
+      continue;
     }
 
-    if (remaining.isNotEmpty) {
-      print(
-        'PDF traits text still did not fit. Remaining chars: ${remaining.length}',
-      );
-    }
+    final result = PdfTextFlow.takeMeasuredTextForField(
+      remaining,
+      field,
+      fontSize,
+      reservedBottomLines:
+          reservedBottomLinesByField[fieldName] ?? 0,
+    );
+
+    setMultilineField(
+      field,
+      result.fittedText,
+      fontSize: fontSize,
+    );
+
+    remaining = result.remainingText;
   }
+
+  return remaining;
+}
 }

@@ -15,9 +15,11 @@ import '../../widgets/create_character_view/detail_class_view/summary/race_summa
 import '../../widgets/create_character_view/detail_class_view/section/subclass_section.dart';
 import '../../widgets/create_character_view/detail_class_view/section/fighting_style_section.dart';
 import '../../widgets/create_character_view/detail_class_view/section/hp_section.dart';
+import '../../widgets/create_character_view/detail_class_view/section/expertise_section.dart';
 import '../../widgets/create_character_view/detail_class_view/header.dart';
 import '../../utils/app_theme.dart';
 import '../../utils/spellcasting_source.dart';
+import '../../view_models/character/character_skill_view_model.dart';
 
 class DetailClassView extends StatefulWidget {
   const DetailClassView({super.key});
@@ -26,8 +28,81 @@ class DetailClassView extends StatefulWidget {
 }
 
 class _DetailClassViewState extends State<DetailClassView> {
+
+  List<String> _expertiseOptions(
+    CreateCharacterViewModel vm,
+    CharacterSubclassViewModel subclassVM,
+  ) {
+    final canonicalSkills = CharacterSkillViewModel.allDndSkills;
+    final options = <String>{
+      ...vm.skillVM.classFixedSkills,
+      ...vm.skillVM.bgFixedSkills,
+      ...vm.skillVM.selectedClassSkills.where((skill) => skill.isNotEmpty),
+      ...vm.racialSkillProficiencies,
+      ...subclassVM.automaticSkills,
+      ...subclassVM.selectedBonusSkills,
+    };
+
+    // Incluye las competencias de habilidad obtenidas por feats.
+    for (final proficiency in vm.featProficiencies) {
+      final lower = proficiency.toLowerCase();
+      for (final skill in canonicalSkills) {
+        if (lower.contains(skill.toLowerCase())) {
+          options.add(skill);
+        }
+      }
+    }
+
+    // Rogue puede elegir Thieves' Tools como una de sus Pericias.
+    final classSlug = vm.selectedClass?.slug.toLowerCase() ?? '';
+    final toolText = vm.selectedClass?.prof_tools?.toLowerCase() ?? '';
+    if (classSlug == 'rogue' && toolText.contains('thieves')) {
+      options.add(CharacterSkillViewModel.thievesToolsExpertise);
+    }
+
+    final result = options.where((item) => item.trim().isNotEmpty).toList();
+    result.sort();
+    return result;
+  }
+
+  bool _validateExpertise(BuildContext context) {
+    final vm = context.read<CreateCharacterViewModel>();
+    final subclassVM = context.read<CharacterSubclassViewModel>();
+    final charClass = vm.selectedClass;
+
+    if (charClass == null) return true;
+
+    final requiredChoices = vm.skillVM.expertiseChoiceCount(
+      classSlug: charClass.slug,
+      characterLevel: vm.level,
+    );
+
+    if (requiredChoices == 0) return true;
+
+    final allowed = _expertiseOptions(vm, subclassVM)
+        .map((item) => item.toLowerCase().trim())
+        .toSet();
+
+    final validSelected = vm.skillVM.selectedExpertise
+        .map((item) => item.toLowerCase().trim())
+        .where((item) => item.isNotEmpty && allowed.contains(item))
+        .toSet();
+
+    if (validSelected.length >= requiredChoices) return true;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Choose all $requiredChoices Expertise proficiencies before continuing.',
+        ),
+      ),
+    );
+    return false;
+  }
   // ── Navega a Hechizos ─────────────────────────────────────────────────────
   void _goToSpells(BuildContext context) {
+    if (!_validateExpertise(context)) return;
+
     final dvm = context.read<DetailClassViewModel>();
     final subVM = context.read<CharacterSubclassViewModel>();
 
@@ -61,6 +136,8 @@ class _DetailClassViewState extends State<DetailClassView> {
 
   // ── Navega a Inventario ───────────────────────────────────────────────────
   void _goToInventory(CreateCharacterViewModel vm) {
+    if (!_validateExpertise(context)) return;
+
     // Capturamos dvm y subclassVM ANTES de navegar — aún están en scope
     final dvm   = context.read<DetailClassViewModel>();
     final subVM = context.read<CharacterSubclassViewModel>();
@@ -130,6 +207,11 @@ class _DetailClassViewState extends State<DetailClassView> {
     );
     final hasSpellSelection =
         spellSource?.hasSpellSelectionAtLevel(vm.level) ?? false;
+    final expertiseCount = vm.skillVM.expertiseChoiceCount(
+      classSlug: charClass.slug,
+      characterLevel: vm.level,
+    );
+    final expertiseOptions = _expertiseOptions(vm, subclassVM);
 
     return Scaffold(
       appBar: _bar(),
@@ -179,6 +261,19 @@ class _DetailClassViewState extends State<DetailClassView> {
                 ...vm.skillVM.selectedClassSkills,
               ],
             ),
+
+            if (expertiseCount > 0) ...[
+              const Divider(height: 40, thickness: 1.2),
+              ExpertiseSection(
+                skillVM: vm.skillVM,
+                classSlug: charClass.slug,
+                characterLevel: vm.level,
+                availableProficiencies: expertiseOptions,
+                proficiencyBonus:
+                    CreateCharacterViewModel.proficiencyBonus(vm.level),
+              ),
+            ],
+
             const Divider(height: 40, thickness: 1.2),
 
             // ── Racial + Background traits ─────────────────────────────────

@@ -78,14 +78,44 @@ class CharacterSheetBuilder {
       ...vm.skillVM.selectedClassSkills,
       ...vm.racialSkillProficiencies,
       ...subclassSkills,
-    }.map((s) => s.toLowerCase()).toSet();
+    }
+        .where((skill) => skill.trim().isNotEmpty)
+        .map((skill) => skill.toLowerCase().trim())
+        .toSet();
+
+    // Solo una habilidad ya competente puede recibir Pericia. La opción de
+    // Thieves' Tools se conserva para mostrarla en la sección de competencias,
+    // pero no tiene un campo numérico propio en la hoja estándar.
+    final maxExpertiseChoices = charClass == null
+        ? 0
+        : vm.skillVM.expertiseChoiceCount(
+            classSlug: charClass.slug,
+            characterLevel: vm.level,
+          );
+
+    final expertiseChoices = vm.skillVM.selectedExpertise
+        .where((item) => item.trim().isNotEmpty)
+        .take(maxExpertiseChoices)
+        .toSet();
+
+    final expertiseSkills = expertiseChoices
+        .map((item) => item.toLowerCase().trim())
+        .where(allSkillProfs.contains)
+        .toSet();
 
     int skillVal(String skill, String stat) {
       final mod = vm.getModifier(stat);
+      final key = skill.toLowerCase();
 
-      return allSkillProfs.contains(skill.toLowerCase())
-          ? mod + profBonus
-          : mod;
+      if (expertiseSkills.contains(key)) {
+        return mod + (profBonus * 2);
+      }
+
+      if (allSkillProfs.contains(key)) {
+        return mod + profBonus;
+      }
+
+      return mod;
     }
 
     final skillValues = <String, int>{
@@ -109,8 +139,14 @@ class CharacterSheetBuilder {
       'survival': skillVal('Survival', 'Wisdom'),
     };
 
+    final perceptionProficiencyMultiplier = expertiseSkills.contains('perception')
+        ? 2
+        : allSkillProfs.contains('perception')
+            ? 1
+            : 0;
+
     final passivePerception =
-        10 + wisMod + (allSkillProfs.contains('perception') ? profBonus : 0);
+        10 + wisMod + (profBonus * perceptionProficiencyMultiplier);
 
     final weapons = invVM.weaponEntries;
 
@@ -182,7 +218,11 @@ class CharacterSheetBuilder {
     );
 
     final equipLines = _buildEquipmentLines(invVM, weapons);
-    final profLines = _buildProficiencyLines(vm, subclassSkills);
+    final profLines = _buildProficiencyLines(
+      vm,
+      subclassSkills,
+      expertiseChoices,
+    );
     final page1Features = _buildPage1Features(vm);
     final page2Features = _buildPage2Features(
       vm: vm,
@@ -296,6 +336,7 @@ class CharacterSheetBuilder {
   static List<String> _buildProficiencyLines(
     CreateCharacterViewModel vm,
     Set<String> subclassSkills,
+    Set<String> expertiseChoices,
   ) {
     final lines = <String>[];
 
@@ -315,6 +356,10 @@ class CharacterSheetBuilder {
       lines.add(
         'Subclass Skills: ${subclassSkills.map(CharacterSheetTextUtils.titleCase).join(', ')}',
       );
+    }
+
+    if (expertiseChoices.isNotEmpty) {
+      lines.add('Expertise: ${expertiseChoices.join(', ')}');
     }
 
     final languages = <String>{

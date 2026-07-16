@@ -225,13 +225,38 @@ class CharacterSheetPdfGenerator {
       ..setText('CP', '${d.cp}');
   }
 
-  static void _writePage2(PdfFieldWriter writer, CharacterSheetData d) {
-    final nameFontSize = d.characterName.length > 22 ? 8.0 : 10.0;
+  static void _writePage2(
+  PdfFieldWriter writer,
+  CharacterSheetData d,
+) {
+  final nameFontSize = d.characterName.length > 22
+      ? 8.0
+      : 10.0;
 
-    writer.setText('CharacterName 2', d.characterName, fontSize: nameFontSize);
+  writer.setText(
+    'CharacterName 2',
+    d.characterName,
+    fontSize: nameFontSize,
+  );
 
-    writer.fillTextAcrossFields(
-      text: _featuresFlowText(d),
+  final flowText = _featuresFlowText(d);
+  String remaining = flowText;
+
+  /*
+   * Conserva inicialmente 4.5.
+   * Solo reduce el tamaño cuando el contenido completo no cabe.
+   *
+   * Cada intento sobrescribe los campos anteriores.
+   */
+  for (final fontSize in const [
+    4.5,
+    4.2,
+    3.9,
+    3.6,
+    3.4,
+  ]) {
+    remaining = writer.fillTextAcrossFields(
+      text: flowText,
       fieldNames: const [
         'Features and Traits',
         'Allies',
@@ -239,7 +264,7 @@ class CharacterSheetPdfGenerator {
         'Feat+Traits',
         'Treasure',
       ],
-      fontSize: 4.5,
+      fontSize: fontSize,
       reservedBottomLinesByField: const {
         'Features and Traits': 2,
         'Allies': 2,
@@ -248,7 +273,19 @@ class CharacterSheetPdfGenerator {
         'Treasure': 4,
       },
     );
+
+    if (remaining.isEmpty) {
+      break;
+    }
   }
+
+  if (remaining.isNotEmpty) {
+    print(
+      'PDF traits text still did not fit. '
+      'Remaining chars: ${remaining.length}',
+    );
+  }
+}
 
   static void _writePage3(PdfFieldWriter writer, CharacterSheetData d) {
     if (d.spellAbility.isNotEmpty) {
