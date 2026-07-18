@@ -1,5 +1,26 @@
 import 'package:flutter/material.dart';
 import '../../data/repositories/character_repository.dart';
+import '../../data/models/character_class.dart';
+
+class ArmorClassCalculation {
+  const ArmorClassCalculation({
+    required this.value,
+    required this.label,
+    required this.formula,
+    required this.usesUnarmoredDefense,
+  });
+
+  final int value;
+  final String label;
+  final String formula;
+  final bool usesUnarmoredDefense;
+}
+
+enum _UnarmoredDefenseKind {
+  none,
+  barbarian,
+  monk,
+}
 
 // ─── Modelos ──────────────────────────────────────────────────────────────────
 
@@ -220,17 +241,141 @@ class CharacterInventoryViewModel extends ChangeNotifier {
   }
 
   /// CA total calculada con los mods del personaje
-  int calculateTotalAC({int dexMod = 0, int conMod = 0, int wisMod = 0}) {
-    int ac = _equippedArmor?.calculateAC(
-          dexMod: dexMod, conMod: conMod, wisMod: wisMod) ??
-        (10 + dexMod); // sin armadura = 10 + Dex
+  ArmorClassCalculation calculateArmorClass({
+  CharacterClass? characterClass,
+  int dexMod = 0,
+  int conMod = 0,
+  int wisMod = 0,
+}) {
+  final shieldBonus = _equippedShield?.plusFlatMod ?? 0;
 
-    // Escudo suma su flat_mod
-    if (_equippedShield != null) {
-      ac += _equippedShield!.plusFlatMod;
-    }
-    return ac;
+  // Si lleva armadura, no se aplica Defensa sin Armadura.
+  if (_equippedArmor != null) {
+    final armorAc = _equippedArmor!.calculateAC(
+      dexMod: dexMod,
+      conMod: conMod,
+      wisMod: wisMod,
+    );
+
+    final total = armorAc + shieldBonus;
+
+    return ArmorClassCalculation(
+      value: total,
+      label: _equippedArmor!.name,
+      formula: shieldBonus > 0
+          ? '$armorAc + Shield ($shieldBonus)'
+          : _equippedArmor!.acString,
+      usesUnarmoredDefense: false,
+    );
   }
+
+  final defenseKind = _resolveUnarmoredDefense(characterClass);
+
+  switch (defenseKind) {
+    case _UnarmoredDefenseKind.barbarian:
+      final baseAc = 10 + dexMod + conMod;
+      final total = baseAc + shieldBonus;
+
+      return ArmorClassCalculation(
+        value: total,
+        label: 'Barbarian Unarmored Defense',
+        formula: shieldBonus > 0
+            ? '10 + DEX ${_modifierText(dexMod)} '
+                '+ CON ${_modifierText(conMod)} '
+                '+ Shield $shieldBonus'
+            : '10 + DEX ${_modifierText(dexMod)} '
+                '+ CON ${_modifierText(conMod)}',
+        usesUnarmoredDefense: true,
+      );
+
+    case _UnarmoredDefenseKind.monk:
+      // El Monje pierde Defensa sin Armadura al utilizar escudo.
+      if (_equippedShield == null) {
+        final total = 10 + dexMod + wisMod;
+
+        return ArmorClassCalculation(
+          value: total,
+          label: 'Monk Unarmored Defense',
+          formula: '10 + DEX ${_modifierText(dexMod)} '
+              '+ WIS ${_modifierText(wisMod)}',
+          usesUnarmoredDefense: true,
+        );
+      }
+
+      final total = 10 + dexMod + shieldBonus;
+
+      return ArmorClassCalculation(
+        value: total,
+        label: 'Unarmored + Shield',
+        formula: '10 + DEX ${_modifierText(dexMod)} '
+            '+ Shield $shieldBonus',
+        usesUnarmoredDefense: false,
+      );
+
+    case _UnarmoredDefenseKind.none:
+      final total = 10 + dexMod + shieldBonus;
+
+      return ArmorClassCalculation(
+        value: total,
+        label: 'Unarmored',
+        formula: shieldBonus > 0
+            ? '10 + DEX ${_modifierText(dexMod)} '
+                '+ Shield $shieldBonus'
+            : '10 + DEX ${_modifierText(dexMod)}',
+        usesUnarmoredDefense: false,
+      );
+  }
+}
+
+/// Mantiene compatibilidad con el resto del proyecto.
+int calculateTotalAC({
+  CharacterClass? characterClass,
+  int dexMod = 0,
+  int conMod = 0,
+  int wisMod = 0,
+}) {
+  return calculateArmorClass(
+    characterClass: characterClass,
+    dexMod: dexMod,
+    conMod: conMod,
+    wisMod: wisMod,
+  ).value;
+}
+
+_UnarmoredDefenseKind _resolveUnarmoredDefense(
+  CharacterClass? characterClass,
+) {
+  if (characterClass == null) {
+    return _UnarmoredDefenseKind.none;
+  }
+
+  final slug = characterClass.slug.trim().toLowerCase();
+
+  final description = [
+    characterClass.desc ?? '',
+    characterClass.table ?? '',
+  ].join('\n').toLowerCase();
+
+  if (slug == 'barbarian' ||
+      description.contains(
+        'dexterity modifier + your constitution modifier',
+      )) {
+    return _UnarmoredDefenseKind.barbarian;
+  }
+
+  if (slug == 'monk' ||
+      description.contains(
+        'dexterity modifier + your wisdom modifier',
+      )) {
+    return _UnarmoredDefenseKind.monk;
+  }
+
+  return _UnarmoredDefenseKind.none;
+}
+
+String _modifierText(int modifier) {
+  return modifier >= 0 ? '(+$modifier)' : '($modifier)';
+}
 
   // ── Armas ─────────────────────────────────────────────────────────────────
 

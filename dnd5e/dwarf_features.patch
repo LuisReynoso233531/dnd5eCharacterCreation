@@ -1,0 +1,753 @@
+diff --git a/lib/data/providers/character_sheet/character_sheet_builder.dart b/lib/data/providers/character_sheet/character_sheet_builder.dart
+index e994a76..3c4f442 100644
+--- a/lib/data/providers/character_sheet/character_sheet_builder.dart
++++ b/lib/data/providers/character_sheet/character_sheet_builder.dart
+@@ -234,7 +234,10 @@ class CharacterSheetBuilder {
+     final spellsByLevel = _buildSpellsByLevel(spellVM);
+     final slotCounts = _buildSlotCounts(vm, spellVM, spellSource);
+ 
+-    final manualHp = detailVM?.calculateTotalHP() ?? 0;
++    final manualHp = detailVM?.calculateTotalHP(
++          racialBonusPerLevel: vm.racialHitPointBonusPerLevel,
++        ) ??
++        0;
+     final sheetMaxHp = manualHp > 0 ? manualHp : vm.maxHp;
+ 
+     return CharacterSheetData(
+diff --git a/lib/view_models/character/character_detail_class_view_model.dart b/lib/view_models/character/character_detail_class_view_model.dart
+index da360c3..7c9e126 100644
+--- a/lib/view_models/character/character_detail_class_view_model.dart
++++ b/lib/view_models/character/character_detail_class_view_model.dart
+@@ -55,6 +55,8 @@ class DetailClassViewModel extends ChangeNotifier {
+   }
+ 
+   void syncLevels(int currentLevel, int hitDieMax) {
++    final previousRolls = Map<int, int>.from(_hpRolls);
++
+     _hpRolls[1] = hitDieMax;
+ 
+     for (int i = 2; i <= currentLevel; i++) {
+@@ -62,6 +64,13 @@ class DetailClassViewModel extends ChangeNotifier {
+     }
+ 
+     _hpRolls.removeWhere((key, value) => key > currentLevel);
++
++    final changed = previousRolls.length != _hpRolls.length ||
++        previousRolls.entries.any(
++          (entry) => _hpRolls[entry.key] != entry.value,
++        );
++
++    if (changed) notifyListeners();
+   }
+ 
+   void updateRoll(int level, int newValue, int hitDieMax) {
+@@ -72,14 +81,14 @@ class DetailClassViewModel extends ChangeNotifier {
+     notifyListeners();
+   }
+ 
+-  int calculateTotalHP() {
++  int calculateTotalHP({int racialBonusPerLevel = 0}) {
+     if (_hpRolls.isEmpty) return 0;
+ 
+-    int diceSum = _hpRolls.values.fold(0, (sum, val) => sum + val);
+-
+-    int conBonusTotal = _hpRolls.length * _conModifier;
++    final diceSum = _hpRolls.values.fold(0, (sum, value) => sum + value);
++    final conBonusTotal = _hpRolls.length * _conModifier;
++    final racialBonusTotal = _hpRolls.length * racialBonusPerLevel;
+ 
+-    return diceSum + conBonusTotal;
++    return diceSum + conBonusTotal + racialBonusTotal;
+   }
+ 
+   int parseHitDie(String? hitDice) {
+diff --git a/lib/view_models/character/character_view_model.dart b/lib/view_models/character/character_view_model.dart
+index 372d529..d2dcdf4 100644
+--- a/lib/view_models/character/character_view_model.dart
++++ b/lib/view_models/character/character_view_model.dart
+@@ -78,6 +78,52 @@ class CreateCharacterViewModel extends ChangeNotifier {
+   Map<String, String>? get selectedDraconicAncestry =>
+       _selectedDraconicAncestry;
+ 
++  String? _selectedRacialToolProficiency;
++  String? get selectedRacialToolProficiency =>
++      _selectedRacialToolProficiency;
++
++  static const List<String> dwarfToolProficiencyOptions = [
++    "Smith's Tools",
++    "Brewer's Supplies",
++    "Mason's Tools",
++  ];
++
++  bool get requiresRacialToolProficiencyChoice {
++    final race = _selectedRace;
++    if (race == null) return false;
++
++    final baseSlug = (race['base_slug'] ?? race['slug'] ?? '')
++        .toString()
++        .toLowerCase();
++    final traits = (race['traits'] ?? '').toString().toLowerCase();
++
++    return baseSlug == 'dwarf' &&
++        traits.contains('tool proficiency') &&
++        traits.contains('of your choice');
++  }
++
++  bool get isRacialToolProficiencyComplete =>
++      !requiresRacialToolProficiencyChoice ||
++      _selectedRacialToolProficiency != null;
++
++  bool get hasDwarvenToughness {
++    final race = _selectedRace;
++    if (race == null) return false;
++
++    final subraceSlug = (race['subrace_slug'] ?? '')
++        .toString()
++        .toLowerCase();
++    final traits = (race['traits'] ?? '').toString().toLowerCase();
++
++    return subraceSlug == 'hill-dwarf' ||
++        traits.contains('dwarven toughness');
++  }
++
++  int get racialHitPointBonusPerLevel => hasDwarvenToughness ? 1 : 0;
++
++  int get racialHitPointBonusTotal =>
++      racialHitPointBonusPerLevel * _level;
++
+   // ─── Proficiencias raciales (delegadas al parser de traits) ───────────────
+   List<String> get racialWeaponProficiencies => _extractWeaponProfsFromTraits(
+     (_selectedRace?['traits'] ?? '').toString(),
+@@ -89,8 +135,20 @@ class CreateCharacterViewModel extends ChangeNotifier {
+   // alias para compatibilidad con views existentes
+   List<String> get racialSkillProfFromTraits => racialSkillProficiencies;
+ 
+-  List<String> get racialToolProficiencies =>
+-      _extractToolProfsFromTraits((_selectedRace?['traits'] ?? '').toString());
++  List<String> get racialToolProficiencies {
++    final proficiencies = <String>{
++      ..._extractToolProfsFromTraits(
++        (_selectedRace?['traits'] ?? '').toString(),
++      ),
++    };
++
++    final selectedChoice = _selectedRacialToolProficiency;
++    if (selectedChoice != null && selectedChoice.isNotEmpty) {
++      proficiencies.add(selectedChoice);
++    }
++
++    return proficiencies.toList();
++  }
+ 
+   // ─── Proficiencias consolidadas ───────────────────────────────────────────
+   List<String> get armorProficiencies {
+@@ -277,6 +335,20 @@ class CreateCharacterViewModel extends ChangeNotifier {
+     notifyListeners();
+   }
+ 
++  void selectRacialToolProficiency(String? proficiency) {
++    if (proficiency == null) {
++      _selectedRacialToolProficiency = null;
++      notifyListeners();
++      return;
++    }
++
++    if (!dwarfToolProficiencyOptions.contains(proficiency)) return;
++    if (_selectedRacialToolProficiency == proficiency) return;
++
++    _selectedRacialToolProficiency = proficiency;
++    notifyListeners();
++  }
++
+   // Getter para obtener el texto formateado que guardarás en los traits más adelante
+   String get dragonbornTraitsSummary {
+     if (_selectedDraconicAncestry == null) return "";
+@@ -320,6 +392,12 @@ class CreateCharacterViewModel extends ChangeNotifier {
+       return '$ancestryBlock\n\n$traits';
+     }
+ 
++    final selectedDwarfTool = _selectedRacialToolProficiency;
++    if (selectedDwarfTool != null &&
++        requiresRacialToolProficiencyChoice) {
++      return 'DWARVEN TOOL PROFICIENCY: $selectedDwarfTool\n\n$traits';
++    }
++
+     return traits;
+   }
+ 
+@@ -331,6 +409,7 @@ class CreateCharacterViewModel extends ChangeNotifier {
+ 
+   void setRace(Map<String, dynamic> raceData) {
+     _selectedRace = raceData;
++    _selectedRacialToolProficiency = null;
+     _racialBonuses.clear();
+     for (final bonus in (raceData['asi'] as List<dynamic>? ?? [])) {
+       final attr = bonus['attributes'][0].toString();
+@@ -353,6 +432,7 @@ class CreateCharacterViewModel extends ChangeNotifier {
+       background: _selectedBackground,
+       charClass: charClass,
+     );
++    _calculateMaxHp();
+     notifyListeners();
+   }
+ 
+@@ -515,19 +595,68 @@ class CreateCharacterViewModel extends ChangeNotifier {
+   Future<void> fetchRaces() async =>
+       _fetch(() => _repository.getRaces(), (data) {
+         _displayRaces = [
+-          for (final r in data)
++          for (final rawRace in data)
+             ...() {
+-              final subs = r['subraces'] as List<dynamic>?;
+-              if (subs == null || subs.isEmpty) return [r];
+-              return [
+-                for (final sub in subs)
++              final race = Map<String, dynamic>.from(rawRace);
++              final subraces = race['subraces'] as List<dynamic>?;
++              final baseSlug = (race['slug'] ?? '').toString();
++
++              if (subraces == null || subraces.isEmpty) {
++                return [
+                   {
+-                    'name': '${r['name']} (${sub['name']})',
+-                    'asi': [...(r['asi'] ?? []), ...(sub['asi'] ?? [])],
+-                    'speed': sub['speed'] ?? r['speed'],
+-                    'traits': '${r['traits'] ?? ''}\n\n${sub['traits'] ?? ''}',
+-                    'languages': sub['languages'] ?? r['languages'],
++                    ...race,
++                    'base_slug': baseSlug,
++                    'subrace_slug': null,
++                    'base_name': race['name'],
++                    'subrace_name': null,
+                   },
++                ];
++              }
++
++              return [
++                for (final rawSubrace in subraces)
++                  ...() {
++                    final subrace = Map<String, dynamic>.from(rawSubrace);
++                    final baseTraits = (race['traits'] ?? '').toString();
++                    final subraceTraits = (subrace['traits'] ?? '').toString();
++                    final baseDescription = (race['desc'] ?? '').toString();
++                    final subraceDescription =
++                        (subrace['desc'] ?? '').toString();
++
++                    return [
++                      {
++                        ...race,
++                        'name': '${race['name']} (${subrace['name']})',
++                        // Conservamos el slug base para no romper reglas
++                        // raciales ya existentes, como Dragonborn.
++                        'slug': baseSlug,
++                        'base_slug': baseSlug,
++                        'subrace_slug': subrace['slug'],
++                        'base_name': race['name'],
++                        'subrace_name': subrace['name'],
++                        'subrace': subrace,
++                        'desc': [baseDescription, subraceDescription]
++                            .where((text) => text.trim().isNotEmpty)
++                            .join('\n\n'),
++                        'asi': [
++                          ...(race['asi'] as List<dynamic>? ?? []),
++                          ...(subrace['asi'] as List<dynamic>? ?? []),
++                        ],
++                        'asi_desc': [
++                          (race['asi_desc'] ?? '').toString(),
++                          (subrace['asi_desc'] ?? '').toString(),
++                        ].where((text) => text.trim().isNotEmpty).join('\n'),
++                        'speed': subrace['speed'] ?? race['speed'],
++                        'traits': [baseTraits, subraceTraits]
++                            .where((text) => text.trim().isNotEmpty)
++                            .join('\n\n'),
++                        'base_traits': baseTraits,
++                        'subrace_traits': subraceTraits,
++                        'languages':
++                            subrace['languages'] ?? race['languages'],
++                      },
++                    ];
++                  }(),
+               ];
+             }(),
+         ];
+@@ -554,6 +683,7 @@ class CreateCharacterViewModel extends ChangeNotifier {
+     _name = '';
+     _level = 1;
+     _selectedRace = _selectedClass = _selectedBackground = null;
++    _selectedRacialToolProficiency = null;
+     _racialBonuses.clear();
+     _levelUpChoices.clear();
+     _featChoices.clear();
+@@ -577,13 +707,19 @@ class CreateCharacterViewModel extends ChangeNotifier {
+ 
+   // ─── Privados ─────────────────────────────────────────────────────────────
+   void _calculateMaxHp() {
+-    if (_selectedClass == null) return;
++    if (_selectedClass == null) {
++      _maxHp = 0;
++      return;
++    }
++
+     final die = int.tryParse(_selectedClass!.hit_dice) ?? 8;
+     final con = getModifier('Constitution');
+-    _maxHp =
++    final classHitPoints =
+         die +
+         con +
+         (_level > 1 ? ((die / 2).floor() + 1 + con) * (_level - 1) : 0);
++
++    _maxHp = classHitPoints + racialHitPointBonusTotal;
+   }
+ 
+   Future<void> _fetch(
+@@ -674,6 +810,11 @@ class CreateCharacterViewModel extends ChangeNotifier {
+     );
+     for (final match in pattern.allMatches(lower)) {
+       final found = match.group(1) ?? '';
++
++      // Las opciones raciales, como Tool Proficiency del enano,
++      // se resuelven mediante la selección explícita del usuario.
++      if (found.contains('of your choice')) continue;
++
+       for (final tool in knownTools) {
+         if (found.contains(tool)) tools.add(_titleCase(tool));
+       }
+diff --git a/lib/views/create_character/character_details_view.dart b/lib/views/create_character/character_details_view.dart
+index f86995a..a1e49cf 100644
+--- a/lib/views/create_character/character_details_view.dart
++++ b/lib/views/create_character/character_details_view.dart
+@@ -1,92 +1,130 @@
+ import 'package:flutter/material.dart';
+ import 'package:provider/provider.dart';
+-import '../../view_models/character/character_view_model.dart';
+-import '../../widgets/create_character_view/detail_view/sections/skills_section.dart';
+-import '../../widgets/create_character_view/detail_view/sections/equipment_section.dart';
+-import '../../widgets/create_character_view/detail_view/sections/language_section.dart';
+-import '../../widgets/create_character_view/detail_view/sections/proficiency_section.dart';
+-import '../../view_models/character/character_skill_view_model.dart';
++
++import '../../view_models/character/character_detail_class_view_model.dart';
+ import '../../view_models/character/character_equipment_view_model.dart';
+ import '../../view_models/character/character_language_view_model.dart';
+-import '../../view_models/character/character_detail_class_view_model.dart';
++import '../../view_models/character/character_skill_view_model.dart';
+ import '../../view_models/character/character_subclass_view_model.dart';
+-import '../../views/create_character/detail_class_view.dart';
++import '../../view_models/character/character_view_model.dart';
+ import '../../widgets/create_character_view/detail_view/sections/dragonbron_section.dart';
++import '../../widgets/create_character_view/detail_view/sections/dwarf_tool_proficiency_section.dart';
++import '../../widgets/create_character_view/detail_view/sections/equipment_section.dart';
++import '../../widgets/create_character_view/detail_view/sections/language_section.dart';
++import '../../widgets/create_character_view/detail_view/sections/proficiency_section.dart';
++import '../../widgets/create_character_view/detail_view/sections/skills_section.dart';
++import 'detail_class_view.dart';
+ 
+ class CharacterSkillAndEquipmentView extends StatelessWidget {
+   const CharacterSkillAndEquipmentView({super.key});
+ 
++  bool _validateRacialChoices(
++    BuildContext context,
++    CreateCharacterViewModel viewModel,
++  ) {
++    if (viewModel.isRacialToolProficiencyComplete) return true;
++
++    ScaffoldMessenger.of(context).showSnackBar(
++      const SnackBar(
++        content: Text(
++          'Choose a dwarven tool proficiency before continuing.',
++        ),
++      ),
++    );
++    return false;
++  }
++
++  void _continueToClassDetails(
++    BuildContext context,
++    CreateCharacterViewModel viewModel,
++  ) {
++    if (!_validateRacialChoices(context, viewModel)) return;
++
++    Navigator.push(
++      context,
++      MaterialPageRoute(
++        builder: (context) => MultiProvider(
++          providers: [
++            ChangeNotifierProvider<DetailClassViewModel>(
++              create: (_) => DetailClassViewModel(),
++            ),
++            ChangeNotifierProxyProvider2<
++              DetailClassViewModel,
++              CreateCharacterViewModel,
++              CharacterSubclassViewModel
++            >(
++              create: (_) => CharacterSubclassViewModel(),
++              update: (
++                context,
++                detailClassViewModel,
++                createCharacterViewModel,
++                subclassViewModel,
++              ) {
++                return subclassViewModel!..updateDependencies(
++                  detailClassVM: detailClassViewModel,
++                  skillVM: createCharacterViewModel.skillVM,
++                );
++              },
++            ),
++          ],
++          child: const DetailClassView(),
++        ),
++      ),
++    );
++  }
++
+   @override
+   Widget build(BuildContext context) {
+-    final vm = context.watch<CreateCharacterViewModel>();
+-    // ← Escuchar los sub-VMs directamente para que sus cambios
+-    //   también disparen un rebuild de esta View
++    final viewModel = context.watch<CreateCharacterViewModel>();
++
++    // Los sub-ViewModels viven por separado en Provider. Escucharlos aquí
++    // permite actualizar inmediatamente las secciones dependientes.
+     context.watch<CharacterEquipmentViewModel>();
+     context.watch<CharacterSkillViewModel>();
+     context.watch<CharacterLanguageViewModel>();
+ 
+     return Scaffold(
+-      appBar: AppBar(
+-        title: const Text("Skills & Equipment"),
+-      ),
++      appBar: AppBar(title: const Text('Skills & Equipment')),
+       body: SingleChildScrollView(
+         padding: const EdgeInsets.all(16),
+         child: Column(
+           crossAxisAlignment: CrossAxisAlignment.start,
+           children: [
+-            buildSkillsSection(vm.skillVM),
++            buildSkillsSection(viewModel.skillVM),
++            if (viewModel.requiresRacialToolProficiencyChoice) ...[
++              const Divider(height: 40, thickness: 1.5),
++              DwarfToolProficiencySection(viewModel: viewModel),
++            ],
+             const Divider(height: 40, thickness: 1.5),
+-            buildProficienciesSection(vm),
++            buildProficienciesSection(viewModel),
+             const Divider(height: 40, thickness: 1.5),
+-            buildLanguagesSection(vm.languageVM),
++            buildLanguagesSection(viewModel.languageVM),
+             const Divider(height: 40, thickness: 1.5),
+-            buildEquipmentSection(vm.equipmentVM),
++            buildEquipmentSection(viewModel.equipmentVM),
+             const Divider(height: 40, thickness: 1.5),
+-            buildDragonbornAncestrySection(vm),
+-
++            buildDragonbornAncestrySection(viewModel),
+             const SizedBox(height: 32),
+             SizedBox(
+               width: double.infinity,
+               height: 52,
+               child: ElevatedButton.icon(
+                 style: ElevatedButton.styleFrom(
+-                            foregroundColor: Colors.white,
++                  foregroundColor: Colors.white,
+                   shape: RoundedRectangleBorder(
+                     borderRadius: BorderRadius.circular(10),
+                   ),
+                 ),
+-                onPressed: () {
+-                  Navigator.push(
+-                    context,
+-                    MaterialPageRoute(
+-                      builder: (context) => MultiProvider(
+-                        providers: [
+-                          ChangeNotifierProvider<DetailClassViewModel>(
+-                            create: (_) => DetailClassViewModel(),
+-                          ),
+-                          ChangeNotifierProxyProvider2<
+-                            DetailClassViewModel,
+-                            CreateCharacterViewModel,
+-                            CharacterSubclassViewModel
+-                          >(
+-                            create: (ctx) => CharacterSubclassViewModel(),
+-                            update: (ctx, detailClassVM, createCharVM, subclassVM) {
+-                              return subclassVM!..updateDependencies(
+-                                detailClassVM: detailClassVM,
+-                                skillVM: createCharVM.skillVM,
+-                              );
+-                            },
+-                          ),
+-                        ],
+-                        child: const DetailClassView(),
+-                      ),
+-                    ),
+-                  );
+-                },
++                onPressed: () => _continueToClassDetails(
++                  context,
++                  viewModel,
++                ),
+                 icon: const Icon(Icons.auto_awesome, size: 20),
+                 label: const Text(
+                   'Continue to Class Details',
+-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
++                  style: TextStyle(
++                    fontWeight: FontWeight.bold,
++                    fontSize: 15,
++                  ),
+                 ),
+               ),
+             ),
+diff --git a/lib/views/create_character/detail_class_view.dart b/lib/views/create_character/detail_class_view.dart
+index 2e39dc8..c10d6e6 100644
+--- a/lib/views/create_character/detail_class_view.dart
++++ b/lib/views/create_character/detail_class_view.dart
+@@ -237,7 +237,13 @@ class _DetailClassViewState extends State<DetailClassView> {
+               ],
+             ),
+             const SizedBox(height: 12),
+-            buildHPSection(context, dvm, charClass.hit_dice, vm.level),
++            buildHPSection(
++              context,
++              dvm,
++              charClass.hit_dice,
++              vm.level,
++              racialBonusPerLevel: vm.racialHitPointBonusPerLevel,
++            ),
+             const Divider(height: 40, thickness: 1.2),
+ 
+             // ── Fighting Style (solo si aplica) ───────────────────────────
+diff --git a/lib/widgets/create_character_view/character_sheet_view/character_sheet_summary_card.dart b/lib/widgets/create_character_view/character_sheet_view/character_sheet_summary_card.dart
+index e50ab47..5ae366d 100644
+--- a/lib/widgets/create_character_view/character_sheet_view/character_sheet_summary_card.dart
++++ b/lib/widgets/create_character_view/character_sheet_view/character_sheet_summary_card.dart
+@@ -20,7 +20,10 @@ class CharacterSheetSummaryCard extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     final proficiencyBonus = CreateCharacterViewModel.proficiencyBonus(vm.level);
+-    final manualHp = detailVM?.calculateTotalHP() ?? 0;
++    final manualHp = detailVM?.calculateTotalHP(
++          racialBonusPerLevel: vm.racialHitPointBonusPerLevel,
++        ) ??
++        0;
+     final maxHp = manualHp > 0 ? manualHp : vm.maxHp;
+     final armorClass = invVM.calculateTotalAC(
+       dexMod: vm.getModifier('Dexterity'),
+diff --git a/lib/widgets/create_character_view/detail_class_view/section/hp_section.dart b/lib/widgets/create_character_view/detail_class_view/section/hp_section.dart
+index ae80371..54a6517 100644
+--- a/lib/widgets/create_character_view/detail_class_view/section/hp_section.dart
++++ b/lib/widgets/create_character_view/detail_class_view/section/hp_section.dart
+@@ -7,11 +7,16 @@ Widget buildHPSection(
+   BuildContext context,
+   DetailClassViewModel dvm,
+   String? hitDiceRaw,
+-  int currentLevel,
+-) {
++  int currentLevel, {
++  int racialBonusPerLevel = 0,
++}) {
+   final hitDieMax = dvm.parseHitDie(hitDiceRaw);
+-  final totalHP = dvm.calculateTotalHP();
++  final totalHP = dvm.calculateTotalHP(
++    racialBonusPerLevel: racialBonusPerLevel,
++  );
+   final conMod = dvm.conModifier;
++  final hasRacialHpBonus = racialBonusPerLevel > 0;
++  final racialBonusTotal = currentLevel * racialBonusPerLevel;
+ 
+   return Column(
+     crossAxisAlignment: CrossAxisAlignment.start,
+@@ -53,6 +58,15 @@ Widget buildHPSection(
+                     height: 1.1,
+                   ),
+                 ),
++                if (hasRacialHpBonus)
++                  Text(
++                    'Includes +$racialBonusTotal from Dwarven Toughness',
++                    style: const TextStyle(
++                      color: Colors.white70,
++                      fontSize: 11,
++                      fontWeight: FontWeight.w500,
++                    ),
++                  ),
+               ],
+             ),
+             const Spacer(),
+@@ -76,7 +90,7 @@ Widget buildHPSection(
+               ),
+             ),
+             SizedBox(
+-              width: 72,
++              width: 62,
+               child: Text(
+                 'Con (${conMod >= 0 ? '+' : ''}$conMod)',
+                 textAlign: TextAlign.center,
+@@ -87,6 +101,19 @@ Widget buildHPSection(
+                 ),
+               ),
+             ),
++            if (hasRacialHpBonus)
++              SizedBox(
++                width: 54,
++                child: Text(
++                  'Dwarf',
++                  textAlign: TextAlign.center,
++                  style: TextStyle(
++                    fontSize: 11,
++                    color: context.dndColors.warning,
++                    fontWeight: FontWeight.w600,
++                  ),
++                ),
++              ),
+             SizedBox(
+               width: 52,
+               child: Text(
+@@ -113,7 +140,7 @@ Widget buildHPSection(
+             final level = index + 1;
+             final roll = dvm.hpRolls[level] ?? hitDieMax;
+             final isLevelOne = level == 1;
+-            final rowTotal = roll + conMod;
++            final rowTotal = roll + conMod + racialBonusPerLevel;
+ 
+             return Container(
+               decoration: index < currentLevel - 1
+@@ -219,7 +246,7 @@ Widget buildHPSection(
+                           ),
+                   ),
+                   SizedBox(
+-                    width: 72,
++                    width: 62,
+                     child: Text(
+                       '${conMod >= 0 ? '+' : ''}$conMod',
+                       textAlign: TextAlign.center,
+@@ -232,6 +259,19 @@ Widget buildHPSection(
+                       ),
+                     ),
+                   ),
++                  if (hasRacialHpBonus)
++                    SizedBox(
++                      width: 54,
++                      child: Text(
++                        '+$racialBonusPerLevel',
++                        textAlign: TextAlign.center,
++                        style: TextStyle(
++                          color: context.dndColors.warning,
++                          fontWeight: FontWeight.bold,
++                          fontSize: 14,
++                        ),
++                      ),
++                    ),
+                   SizedBox(
+                     width: 52,
+                     child: Text(
+@@ -253,8 +293,11 @@ Widget buildHPSection(
+       Padding(
+         padding: const EdgeInsets.only(top: 8),
+         child: Text(
+-          'Level 1 always uses the maximum die value. '
+-          "Adjust each level's roll to match your actual dice results.",
++          hasRacialHpBonus
++              ? 'Level 1 uses the maximum die value. Dwarven Toughness adds '
++                    '+1 HP at every character level.'
++              : 'Level 1 always uses the maximum die value. '
++                    "Adjust each level's roll to match your actual dice results.",
+           style: TextStyle(
+             fontSize: 11,
+             color: context.dndColors.mutedText,
+diff --git a/lib/widgets/create_character_view/detail_view/sections/dwarf_tool_proficiency_section.dart b/lib/widgets/create_character_view/detail_view/sections/dwarf_tool_proficiency_section.dart
+new file mode 100644
+index 0000000..4bea902
+--- /dev/null
++++ b/lib/widgets/create_character_view/detail_view/sections/dwarf_tool_proficiency_section.dart
+@@ -0,0 +1,92 @@
++import 'package:flutter/material.dart';
++
++import '../../../../utils/app_theme.dart';
++import '../../../../view_models/character/character_view_model.dart';
++import '../section_title.dart';
++
++class DwarfToolProficiencySection extends StatelessWidget {
++  const DwarfToolProficiencySection({
++    super.key,
++    required this.viewModel,
++  });
++
++  final CreateCharacterViewModel viewModel;
++
++  @override
++  Widget build(BuildContext context) {
++    if (!viewModel.requiresRacialToolProficiencyChoice) {
++      return const SizedBox.shrink();
++    }
++
++    final selected = viewModel.selectedRacialToolProficiency;
++
++    return Column(
++      crossAxisAlignment: CrossAxisAlignment.start,
++      children: [
++        sectionTitle('Dwarven Tool Proficiency'),
++        const SizedBox(height: 6),
++        Text(
++          "Choose one artisan's tool proficiency granted by your dwarf race.",
++          style: Theme.of(context).textTheme.bodySmall?.copyWith(
++            color: context.dndColors.mutedText,
++          ),
++        ),
++        const SizedBox(height: 12),
++        DropdownButtonFormField<String>(
++          key: ValueKey('dwarf-tool-$selected'),
++          initialValue: selected,
++          isExpanded: true,
++          decoration: InputDecoration(
++            labelText: 'Tool proficiency',
++            prefixIcon: const Icon(Icons.handyman_outlined),
++            helperText: selected == null
++                ? 'Required before continuing'
++                : 'Added to Tools & Kits and to the character sheet',
++          ),
++          items: CreateCharacterViewModel.dwarfToolProficiencyOptions
++              .map(
++                (tool) => DropdownMenuItem<String>(
++                  value: tool,
++                  child: Text(tool),
++                ),
++              )
++              .toList(),
++          onChanged: viewModel.selectRacialToolProficiency,
++        ),
++        if (selected != null) ...[
++          const SizedBox(height: 10),
++          Container(
++            width: double.infinity,
++            padding: const EdgeInsets.all(12),
++            decoration: BoxDecoration(
++              color: context.dndColors.successContainer,
++              borderRadius: BorderRadius.circular(10),
++              border: Border.all(
++                color: context.dndColors.success.withValues(alpha: 0.45),
++              ),
++            ),
++            child: Row(
++              children: [
++                Icon(
++                  Icons.check_circle_outline,
++                  color: context.dndColors.success,
++                  size: 20,
++                ),
++                const SizedBox(width: 10),
++                Expanded(
++                  child: Text(
++                    'Proficient with $selected',
++                    style: TextStyle(
++                      color: context.dndColors.onSuccessContainer,
++                      fontWeight: FontWeight.w600,
++                    ),
++                  ),
++                ),
++              ],
++            ),
++          ),
++        ],
++      ],
++    );
++  }
++}

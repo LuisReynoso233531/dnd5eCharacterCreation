@@ -92,7 +92,10 @@ class _CharacterSheetViewState extends State<CharacterSheetView> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<CreateCharacterViewModel>();
-    final isReady = vm.selectedClass != null && vm.selectedRace != null;
+    final isReady =
+        vm.selectedClass != null &&
+        vm.selectedRace != null &&
+        vm.isDwarvenToolProficiencyComplete;
 
     return Scaffold(
       appBar: AppBar(
@@ -133,7 +136,9 @@ class _CharacterSheetViewState extends State<CharacterSheetView> {
             if (!isReady) ...[
               const SizedBox(height: 8),
               Text(
-                'Select a race and class to generate the sheet.',
+                vm.isDwarvenToolProficiencyComplete
+                    ? 'Select a race and class to generate the sheet.'
+                    : 'Choose the required dwarven tool proficiency first.',
                 style: TextStyle(
                   color: context.dndColors.mutedText,
                   fontSize: 12,

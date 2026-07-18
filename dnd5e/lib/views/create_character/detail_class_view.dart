@@ -186,9 +186,13 @@ class _DetailClassViewState extends State<DetailClassView> {
 
     final int conMod = vm.getModifier('Constitution');
     final int hitDieMax = dvm.parseHitDie(charClass.hit_dice);
+    final int racialHpBonusPerLevel = vm.racialHitPointBonusPerLevel;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (dvm.conModifier != conMod) dvm.setConModifier(conMod);
+      if (dvm.racialHpBonusPerLevel != racialHpBonusPerLevel) {
+        dvm.setRacialHpBonusPerLevel(racialHpBonusPerLevel);
+      }
       dvm.syncLevels(vm.level, hitDieMax);
     });
 

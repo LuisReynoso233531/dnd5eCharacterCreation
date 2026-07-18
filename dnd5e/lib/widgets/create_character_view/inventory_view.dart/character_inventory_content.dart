@@ -15,7 +15,8 @@ import './section/inventory_section.dart';
 class CharacterInventoryContent extends StatelessWidget {
   final CreateCharacterViewModel characterVM;
   final CharacterInventoryViewModel inventoryVM;
-    final _toolController = TextEditingController();
+  final _toolController = TextEditingController();
+
   ///final _treasuresController = TextEditingController();
 
   CharacterInventoryContent({
@@ -30,7 +31,8 @@ class CharacterInventoryContent extends StatelessWidget {
     final conMod = characterVM.getModifier('Constitution');
     final wisMod = characterVM.getModifier('Wisdom');
 
-    final totalAC = inventoryVM.calculateTotalAC(
+    final acCalculation = inventoryVM.calculateArmorClass(
+      characterClass: characterVM.selectedClass,
       dexMod: dexMod,
       conMod: conMod,
       wisMod: wisMod,
@@ -42,7 +44,9 @@ class CharacterInventoryContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ArmorClassCard(
-            totalAC: totalAC,
+            totalAC: acCalculation.value,
+            calculationLabel: acCalculation.label,
+            calculationFormula: acCalculation.formula,
             equippedArmor: inventoryVM.equippedArmor,
             equippedShield: inventoryVM.equippedShield,
           ),
@@ -65,10 +69,7 @@ class CharacterInventoryContent extends StatelessWidget {
             title: 'Armors',
             subtitle: 'Choose your armor and shield.',
             icon: Icons.security,
-            child: ArmorSection(
-              inv: inventoryVM,
-              dexMod: dexMod,
-            ),
+            child: ArmorSection(inv: inventoryVM, dexMod: dexMod),
           ),
 
           const SizedBox(height: 24),

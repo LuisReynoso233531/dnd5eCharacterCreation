@@ -12,6 +12,8 @@ Widget buildHPSection(
   final hitDieMax = dvm.parseHitDie(hitDiceRaw);
   final totalHP = dvm.calculateTotalHP();
   final conMod = dvm.conModifier;
+  final racialBonusPerLevel = dvm.racialHpBonusPerLevel;
+  final hasRacialBonus = racialBonusPerLevel > 0;
 
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,6 +55,15 @@ Widget buildHPSection(
                     height: 1.1,
                   ),
                 ),
+                if (hasRacialBonus)
+                  Text(
+                    'Includes +${racialBonusPerLevel * currentLevel} from Dwarven Toughness',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
               ],
             ),
             const Spacer(),
@@ -76,7 +87,7 @@ Widget buildHPSection(
               ),
             ),
             SizedBox(
-              width: 72,
+              width: 68,
               child: Text(
                 'Con (${conMod >= 0 ? '+' : ''}$conMod)',
                 textAlign: TextAlign.center,
@@ -87,6 +98,19 @@ Widget buildHPSection(
                 ),
               ),
             ),
+            if (hasRacialBonus)
+              SizedBox(
+                width: 62,
+                child: Text(
+                  'Dwarf (+$racialBonusPerLevel)',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: context.dndColors.warning,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             SizedBox(
               width: 52,
               child: Text(
@@ -113,7 +137,7 @@ Widget buildHPSection(
             final level = index + 1;
             final roll = dvm.hpRolls[level] ?? hitDieMax;
             final isLevelOne = level == 1;
-            final rowTotal = roll + conMod;
+            final rowTotal = roll + conMod + racialBonusPerLevel;
 
             return Container(
               decoration: index < currentLevel - 1
@@ -219,7 +243,7 @@ Widget buildHPSection(
                           ),
                   ),
                   SizedBox(
-                    width: 72,
+                    width: 68,
                     child: Text(
                       '${conMod >= 0 ? '+' : ''}$conMod',
                       textAlign: TextAlign.center,
@@ -232,6 +256,19 @@ Widget buildHPSection(
                       ),
                     ),
                   ),
+                  if (hasRacialBonus)
+                    SizedBox(
+                      width: 62,
+                      child: Text(
+                        '+$racialBonusPerLevel',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: context.dndColors.warning,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
                   SizedBox(
                     width: 52,
                     child: Text(
@@ -253,8 +290,11 @@ Widget buildHPSection(
       Padding(
         padding: const EdgeInsets.only(top: 8),
         child: Text(
-          'Level 1 always uses the maximum die value. '
-          "Adjust each level's roll to match your actual dice results.",
+          hasRacialBonus
+              ? 'Level 1 uses the maximum die value. Dwarven Toughness adds '
+                    '+$racialBonusPerLevel HP at every character level.'
+              : 'Level 1 always uses the maximum die value. '
+                    "Adjust each level's roll to match your actual dice results.",
           style: TextStyle(
             fontSize: 11,
             color: context.dndColors.mutedText,

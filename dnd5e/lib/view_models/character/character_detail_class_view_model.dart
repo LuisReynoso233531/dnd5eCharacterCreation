@@ -9,9 +9,11 @@ class DetailClassViewModel extends ChangeNotifier {
   String? get selectedFightingStyleName => _selectedFightingStyleName;
   final Map<int, int> _hpRolls = {};
   int _conModifier = 0;
+  int _racialHpBonusPerLevel = 0;
 
   Map<int, int> get hpRolls => _hpRolls;
   int get conModifier => _conModifier;
+  int get racialHpBonusPerLevel => _racialHpBonusPerLevel;
 
   static const Map<String, int> _subclassUnlockLevel = {
     'barbarian': 3,
@@ -40,7 +42,16 @@ class DetailClassViewModel extends ChangeNotifier {
   }
 
   void setConModifier(int mod) {
+    if (_conModifier == mod) return;
     _conModifier = mod;
+    notifyListeners();
+  }
+
+  void setRacialHpBonusPerLevel(int bonus) {
+    final normalizedBonus = bonus < 0 ? 0 : bonus;
+    if (_racialHpBonusPerLevel == normalizedBonus) return;
+
+    _racialHpBonusPerLevel = normalizedBonus;
     notifyListeners();
   }
 
@@ -72,14 +83,16 @@ class DetailClassViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  int calculateTotalHP() {
+  int calculateTotalHP({int? racialBonusPerLevel}) {
     if (_hpRolls.isEmpty) return 0;
 
-    int diceSum = _hpRolls.values.fold(0, (sum, val) => sum + val);
+    final diceSum = _hpRolls.values.fold(0, (sum, val) => sum + val);
+    final conBonusTotal = _hpRolls.length * _conModifier;
+    final effectiveRacialBonus =
+        racialBonusPerLevel ?? _racialHpBonusPerLevel;
+    final racialBonusTotal = _hpRolls.length * effectiveRacialBonus;
 
-    int conBonusTotal = _hpRolls.length * _conModifier;
-
-    return diceSum + conBonusTotal;
+    return diceSum + conBonusTotal + racialBonusTotal;
   }
 
   int parseHitDie(String? hitDice) {
@@ -237,6 +250,9 @@ class DetailClassViewModel extends ChangeNotifier {
 
   void reset() {
     _selectedArchetype = null;
+    _hpRolls.clear();
+    _conModifier = 0;
+    _racialHpBonusPerLevel = 0;
     notifyListeners();
   }
 }

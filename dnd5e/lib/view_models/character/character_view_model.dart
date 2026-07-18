@@ -78,6 +78,66 @@ class CreateCharacterViewModel extends ChangeNotifier {
   Map<String, String>? get selectedDraconicAncestry =>
       _selectedDraconicAncestry;
 
+  static const List<String> dwarvenToolProficiencyOptions = [
+    "Smith's Tools",
+    "Brewer's Supplies",
+    "Mason's Tools",
+  ];
+
+  String? _selectedDwarvenToolProficiency;
+  String? get selectedDwarvenToolProficiency =>
+      _selectedDwarvenToolProficiency;
+
+  bool get isDwarfRace {
+    final race = _selectedRace;
+    if (race == null) return false;
+
+    final baseSlug = (race['base_slug'] ?? race['slug'] ?? '')
+        .toString()
+        .trim()
+        .toLowerCase();
+    final name = (race['name'] ?? '').toString().trim().toLowerCase();
+    final traits = (race['traits'] ?? '').toString().toLowerCase();
+
+    return baseSlug == 'dwarf' ||
+        name == 'dwarf' ||
+        name.startsWith('dwarf (') ||
+        traits.contains('dwarven resilience');
+  }
+
+  bool get requiresDwarvenToolProficiencyChoice {
+    if (!isDwarfRace) return false;
+
+    final traits = (_selectedRace?['traits'] ?? '').toString().toLowerCase();
+    return traits.contains('tool proficiency') &&
+        traits.contains("smith's tools") &&
+        traits.contains("brewer's supplies") &&
+        traits.contains("mason's tools");
+  }
+
+  bool get isDwarvenToolProficiencyComplete =>
+      !requiresDwarvenToolProficiencyChoice ||
+      _selectedDwarvenToolProficiency != null;
+
+  bool get hasDwarvenToughness {
+    final race = _selectedRace;
+    if (race == null) return false;
+
+    final subraceSlug = (race['subrace_slug'] ?? '')
+        .toString()
+        .trim()
+        .toLowerCase();
+    final name = (race['name'] ?? '').toString().trim().toLowerCase();
+    final traits = (race['traits'] ?? '').toString().toLowerCase();
+
+    return subraceSlug == 'hill-dwarf' ||
+        name.contains('hill dwarf') ||
+        traits.contains('dwarven toughness');
+  }
+
+  int get racialHitPointBonusPerLevel => hasDwarvenToughness ? 1 : 0;
+  int get racialHitPointBonus => racialHitPointBonusPerLevel * _level;
+
   // ─── Proficiencias raciales (delegadas al parser de traits) ───────────────
   List<String> get racialWeaponProficiencies => _extractWeaponProfsFromTraits(
     (_selectedRace?['traits'] ?? '').toString(),
@@ -89,8 +149,31 @@ class CreateCharacterViewModel extends ChangeNotifier {
   // alias para compatibilidad con views existentes
   List<String> get racialSkillProfFromTraits => racialSkillProficiencies;
 
-  List<String> get racialToolProficiencies =>
-      _extractToolProfsFromTraits((_selectedRace?['traits'] ?? '').toString());
+  List<String> get racialToolProficiencies {
+    final proficiencies = _extractToolProfsFromTraits(
+      (_selectedRace?['traits'] ?? '').toString(),
+    );
+
+    if (requiresDwarvenToolProficiencyChoice) {
+      const choiceNames = {
+        "smith's tools",
+        "brewer's supplies",
+        "mason's tools",
+        "artisan's tools",
+      };
+
+      proficiencies.removeWhere(
+        (item) => choiceNames.contains(item.toLowerCase().trim()),
+      );
+
+      final selected = _selectedDwarvenToolProficiency;
+      if (selected != null && selected.isNotEmpty) {
+        proficiencies.add(selected);
+      }
+    }
+
+    return proficiencies.toSet().toList();
+  }
 
   // ─── Proficiencias consolidadas ───────────────────────────────────────────
   List<String> get armorProficiencies {
@@ -277,6 +360,20 @@ class CreateCharacterViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setDwarvenToolProficiency(String? tool) {
+    if (tool == null) {
+      _selectedDwarvenToolProficiency = null;
+      notifyListeners();
+      return;
+    }
+
+    if (!dwarvenToolProficiencyOptions.contains(tool)) return;
+    if (_selectedDwarvenToolProficiency == tool) return;
+
+    _selectedDwarvenToolProficiency = tool;
+    notifyListeners();
+  }
+
   // Getter para obtener el texto formateado que guardarás en los traits más adelante
   String get dragonbornTraitsSummary {
     if (_selectedDraconicAncestry == null) return "";
@@ -331,6 +428,7 @@ class CreateCharacterViewModel extends ChangeNotifier {
 
   void setRace(Map<String, dynamic> raceData) {
     _selectedRace = raceData;
+    _selectedDwarvenToolProficiency = null;
     _racialBonuses.clear();
     for (final bonus in (raceData['asi'] as List<dynamic>? ?? [])) {
       final attr = bonus['attributes'][0].toString();
@@ -353,6 +451,7 @@ class CreateCharacterViewModel extends ChangeNotifier {
       background: _selectedBackground,
       charClass: charClass,
     );
+    _calculateMaxHp();
     notifyListeners();
   }
 
@@ -515,19 +614,71 @@ class CreateCharacterViewModel extends ChangeNotifier {
   Future<void> fetchRaces() async =>
       _fetch(() => _repository.getRaces(), (data) {
         _displayRaces = [
-          for (final r in data)
+          for (final rawRace in data)
             ...() {
-              final subs = r['subraces'] as List<dynamic>?;
-              if (subs == null || subs.isEmpty) return [r];
-              return [
-                for (final sub in subs)
+              final race = Map<String, dynamic>.from(rawRace as Map);
+              final subraces = race['subraces'] as List<dynamic>?;
+              final baseSlug = (race['slug'] ?? '').toString();
+
+              if (subraces == null || subraces.isEmpty) {
+                return [
                   {
-                    'name': '${r['name']} (${sub['name']})',
-                    'asi': [...(r['asi'] ?? []), ...(sub['asi'] ?? [])],
-                    'speed': sub['speed'] ?? r['speed'],
-                    'traits': '${r['traits'] ?? ''}\n\n${sub['traits'] ?? ''}',
-                    'languages': sub['languages'] ?? r['languages'],
+                    ...race,
+                    'base_slug': baseSlug,
+                    'subrace_slug': null,
+                    'base_name': race['name'],
+                    'subrace_name': null,
                   },
+                ];
+              }
+
+              return [
+                for (final rawSubrace in subraces)
+                  ...() {
+                    final subrace = Map<String, dynamic>.from(
+                      rawSubrace as Map,
+                    );
+
+                    String combineText(dynamic base, dynamic child) {
+                      final parts = [base, child]
+                          .map((value) => value?.toString().trim() ?? '')
+                          .where((value) => value.isNotEmpty)
+                          .toList();
+                      return parts.join('\n\n');
+                    }
+
+                    return [
+                      {
+                        ...race,
+                        ...subrace,
+                        'name': '${race['name']} (${subrace['name']})',
+                        'slug': baseSlug,
+                        'base_slug': baseSlug,
+                        'subrace_slug': subrace['slug'],
+                        'base_name': race['name'],
+                        'subrace_name': subrace['name'],
+                        'asi': [
+                          ...(race['asi'] as List<dynamic>? ?? const []),
+                          ...(subrace['asi'] as List<dynamic>? ?? const []),
+                        ],
+                        'asi_desc': combineText(
+                          race['asi_desc'],
+                          subrace['asi_desc'],
+                        ),
+                        'desc': combineText(race['desc'], subrace['desc']),
+                        'speed': subrace['speed'] ?? race['speed'],
+                        'speed_desc':
+                            subrace['speed_desc'] ?? race['speed_desc'],
+                        'languages':
+                            subrace['languages'] ?? race['languages'],
+                        'traits': combineText(
+                          race['traits'],
+                          subrace['traits'],
+                        ),
+                        'subraces': const <dynamic>[],
+                      },
+                    ];
+                  }(),
               ];
             }(),
         ];
@@ -567,6 +718,7 @@ class CreateCharacterViewModel extends ChangeNotifier {
     };
     _maxHp = 0;
     _speed = 30;
+    _selectedDwarvenToolProficiency = null;
 
     skillVM.reset();
     equipmentVM.reset();
@@ -583,7 +735,8 @@ class CreateCharacterViewModel extends ChangeNotifier {
     _maxHp =
         die +
         con +
-        (_level > 1 ? ((die / 2).floor() + 1 + con) * (_level - 1) : 0);
+        (_level > 1 ? ((die / 2).floor() + 1 + con) * (_level - 1) : 0) +
+        racialHitPointBonus;
   }
 
   Future<void> _fetch(

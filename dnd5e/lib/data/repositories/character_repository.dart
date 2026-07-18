@@ -24,7 +24,7 @@ class CharacterRepository {
   Future<List<Map<String, dynamic>>> getRaces() async {
     try {
       final response = await _dio.get(
-        'races/?document__slug=wotc-srd&limit=500',
+        'races/',
       );
       return List<Map<String, dynamic>>.from(response.data['results']);
     } on DioException catch (e) {

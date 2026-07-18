@@ -5,6 +5,7 @@ import '../../widgets/create_character_view/detail_view/sections/skills_section.
 import '../../widgets/create_character_view/detail_view/sections/equipment_section.dart';
 import '../../widgets/create_character_view/detail_view/sections/language_section.dart';
 import '../../widgets/create_character_view/detail_view/sections/proficiency_section.dart';
+import '../../widgets/create_character_view/detail_view/sections/dwarf_tool_proficiency_section.dart';
 import '../../view_models/character/character_skill_view_model.dart';
 import '../../view_models/character/character_equipment_view_model.dart';
 import '../../view_models/character/character_language_view_model.dart';
@@ -37,6 +38,10 @@ class CharacterSkillAndEquipmentView extends StatelessWidget {
             buildSkillsSection(vm.skillVM),
             const Divider(height: 40, thickness: 1.5),
             buildProficienciesSection(vm),
+            if (vm.requiresDwarvenToolProficiencyChoice) ...[
+              const Divider(height: 40, thickness: 1.5),
+              buildDwarvenToolProficiencySection(vm),
+            ],
             const Divider(height: 40, thickness: 1.5),
             buildLanguagesSection(vm.languageVM),
             const Divider(height: 40, thickness: 1.5),
@@ -56,6 +61,17 @@ class CharacterSkillAndEquipmentView extends StatelessWidget {
                   ),
                 ),
                 onPressed: () {
+                  if (!vm.isDwarvenToolProficiencyComplete) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Choose a dwarven tool proficiency before continuing.',
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(

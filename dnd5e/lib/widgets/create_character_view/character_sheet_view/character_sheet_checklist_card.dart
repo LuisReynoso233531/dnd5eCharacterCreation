@@ -18,6 +18,11 @@ class CharacterSheetChecklistCard extends StatelessWidget {
       _Check('Race selected', vm.selectedRace != null),
       _Check('Class selected', vm.selectedClass != null),
       _Check('Background set', vm.selectedBackground != null),
+      if (vm.requiresDwarvenToolProficiencyChoice)
+        _Check(
+          'Dwarven tool selected',
+          vm.isDwarvenToolProficiencyComplete,
+        ),
       _Check(
         'Level improvements complete',
         vm.isLevelUpComplete || vm.availableImprovementLevels.isEmpty,

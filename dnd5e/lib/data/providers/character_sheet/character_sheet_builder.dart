@@ -4,6 +4,7 @@ import '../../../view_models/character/character_inventory_view_model.dart';
 import '../../../view_models/character/character_spell_view_model.dart';
 import '../../../view_models/character/character_detail_class_view_model.dart';
 import '../../../view_models/character/character_subclass_view_model.dart';
+import 'pdf_feature_text_policy.dart';
 import '../../../utils/spellcasting_source.dart';
 
 import 'character_sheet_data.dart';
@@ -42,6 +43,7 @@ class CharacterSheetBuilder {
     final chaMod = vm.getModifier('Charisma');
 
     final ac = invVM.calculateTotalAC(
+      characterClass: charClass,
       dexMod: dexMod,
       conMod: conMod,
       wisMod: wisMod,
@@ -72,16 +74,17 @@ class CharacterSheetBuilder {
       ...(subclassVM?.selectedBonusSkills ?? []),
     }.map((s) => s.toLowerCase()).toSet();
 
-    final allSkillProfs = <String>{
-      ...vm.skillVM.classFixedSkills,
-      ...vm.skillVM.bgFixedSkills,
-      ...vm.skillVM.selectedClassSkills,
-      ...vm.racialSkillProficiencies,
-      ...subclassSkills,
-    }
-        .where((skill) => skill.trim().isNotEmpty)
-        .map((skill) => skill.toLowerCase().trim())
-        .toSet();
+    final allSkillProfs =
+        <String>{
+              ...vm.skillVM.classFixedSkills,
+              ...vm.skillVM.bgFixedSkills,
+              ...vm.skillVM.selectedClassSkills,
+              ...vm.racialSkillProficiencies,
+              ...subclassSkills,
+            }
+            .where((skill) => skill.trim().isNotEmpty)
+            .map((skill) => skill.toLowerCase().trim())
+            .toSet();
 
     // Solo una habilidad ya competente puede recibir Pericia. La opción de
     // Thieves' Tools se conserva para mostrarla en la sección de competencias,
@@ -139,11 +142,12 @@ class CharacterSheetBuilder {
       'survival': skillVal('Survival', 'Wisdom'),
     };
 
-    final perceptionProficiencyMultiplier = expertiseSkills.contains('perception')
+    final perceptionProficiencyMultiplier =
+        expertiseSkills.contains('perception')
         ? 2
         : allSkillProfs.contains('perception')
-            ? 1
-            : 0;
+        ? 1
+        : 0;
 
     final passivePerception =
         10 + wisMod + (profBonus * perceptionProficiencyMultiplier);
@@ -234,7 +238,11 @@ class CharacterSheetBuilder {
     final spellsByLevel = _buildSpellsByLevel(spellVM);
     final slotCounts = _buildSlotCounts(vm, spellVM, spellSource);
 
-    final manualHp = detailVM?.calculateTotalHP() ?? 0;
+    final manualHp =
+        detailVM?.calculateTotalHP(
+          racialBonusPerLevel: vm.racialHitPointBonusPerLevel,
+        ) ??
+        0;
     final sheetMaxHp = manualHp > 0 ? manualHp : vm.maxHp;
 
     return CharacterSheetData(
@@ -381,79 +389,321 @@ class CharacterSheetBuilder {
   }
 
   static String _buildPage2Features({
-    required CreateCharacterViewModel vm,
-    required DetailClassViewModel? detailVM,
-    required dynamic charClass,
-  }) {
-    final sections = <String>[];
+  required CreateCharacterViewModel vm,
+  required DetailClassViewModel? detailVM,
+  required dynamic charClass,
+}) {
+  final sections = <String>[];
 
-    final bgFeature = vm.selectedBackground?['feature'] ?? '';
-    final bgDesc = CharacterSheetTextUtils.cleanPdfText(
-      vm.selectedBackground?['feature_desc'] ?? '',
+  final classSlug = (charClass?.slug ?? '')
+      .toString()
+      .trim()
+      .toLowerCase();
+
+  // ─────────────────────────────────────────────────────────────
+  // Background
+  // ─────────────────────────────────────────────────────────────
+
+  final bgFeature = (vm.selectedBackground?['feature'] ?? '')
+      .toString()
+      .trim();
+
+  final bgDesc = CharacterSheetTextUtils.cleanPdfText(
+    vm.selectedBackground?['feature_desc'] ?? '',
+  );
+
+  if (bgFeature.isNotEmpty && bgDesc.isNotEmpty) {
+    sections.add(
+      'BACKGROUND: $bgFeature\n$bgDesc',
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Class features desbloqueados
+  // ─────────────────────────────────────────────────────────────
+
+  if (charClass != null && detailVM != null) {
+    final unlocked = detailVM.getUnlockedFeatures(
+      charClass,
+      vm.level,
     );
 
-    if (bgFeature.isNotEmpty && bgDesc.isNotEmpty) {
-      sections.add('BACKGROUND: $bgFeature\n$bgDesc');
-    }
+    if (unlocked.isNotEmpty) {
+      final buffer = StringBuffer(
+        'CLASS FEATURES - ${charClass.name} Lv${vm.level}\n',
+      );
 
-    if (charClass != null && detailVM != null) {
-      final unlocked = detailVM.getUnlockedFeatures(charClass, vm.level);
+      /*
+       * Warlock tiene dos encabezados llamados Eldritch Invocations:
+       *
+       * 1. La característica de nivel 2.
+       * 2. El catálogo completo de invocaciones.
+       *
+       * Al encontrar el segundo, dejamos de imprimir el catálogo.
+       */
+      var eldritchInvocationSections = 0;
 
-      if (unlocked.isNotEmpty) {
-        final buf = StringBuffer(
-          'CLASS FEATURES - ${charClass.name} Lv${vm.level}\n',
-        );
+      for (final feature in unlocked) {
+        final title = (feature['title'] ?? '')
+            .toString()
+            .trim();
 
-        for (final f in unlocked) {
-          final title = (f['title'] ?? '').toString().toUpperCase();
-          final desc = CharacterSheetTextUtils.cleanPdfText(f['desc'] ?? '');
+        if (title.isEmpty) {
+          continue;
+        }
 
-          if (desc.isNotEmpty) {
-            buf.writeln('\n$title\n$desc');
+        final normalizedTitle = title.toLowerCase();
+
+        if (classSlug == 'warlock') {
+          if (normalizedTitle == 'eldritch invocations') {
+            eldritchInvocationSections++;
+
+            if (eldritchInvocationSections >= 2) {
+              break;
+            }
+          }
+
+          if (_shouldSkipWarlockFeature(
+            normalizedTitle,
+          )) {
+            continue;
           }
         }
 
-        sections.add(buf.toString().trim());
+        final rawDescription = (feature['desc'] ?? '')
+            .toString();
+
+        final description = _compactClassFeatureForPdf(
+          classSlug: classSlug,
+          featureTitle: normalizedTitle,
+          rawDescription: rawDescription,
+        );
+
+        if (description.isEmpty) {
+          continue;
+        }
+
+        buffer
+          ..writeln()
+          ..writeln(title.toUpperCase())
+          ..writeln(description);
+      }
+
+      final classFeaturesText = buffer.toString().trim();
+
+      if (classFeaturesText.isNotEmpty) {
+        sections.add(classFeaturesText);
       }
     }
+  }
 
-    final subclassTraitsText = CharacterSheetTextUtils.buildSubclassTraitsText(
-      detailVM?.selectedArchetype,
+  // ─────────────────────────────────────────────────────────────
+  // Subclase
+  // ─────────────────────────────────────────────────────────────
+
+  final selectedArchetype = detailVM?.selectedArchetype;
+
+  if (selectedArchetype != null) {
+    /*
+     * Se hace una copia para no modificar el arquetipo almacenado
+     * dentro del ViewModel.
+     */
+    final sanitizedArchetype = Map<String, dynamic>.from(
+      selectedArchetype,
+    );
+
+    final archetypeSlug = (
+      selectedArchetype['slug'] ?? ''
+    ).toString();
+
+    final rawArchetypeDescription = (
+      selectedArchetype['desc'] ?? ''
+    ).toString();
+
+    sanitizedArchetype['desc'] =
+        PdfFeatureTextPolicy.sanitizeSubclassDescription(
+      classSlug: classSlug,
+      archetypeSlug: archetypeSlug,
+      rawDescription: rawArchetypeDescription,
+    );
+
+    final subclassTraitsText =
+        CharacterSheetTextUtils.buildSubclassTraitsText(
+      sanitizedArchetype,
       vm.level,
     );
 
     if (subclassTraitsText.isNotEmpty) {
       sections.add(subclassTraitsText);
     }
-
-    final fightingStyle = detailVM?.selectedFightingStyleName;
-    if (fightingStyle != null && fightingStyle.isNotEmpty) {
-      sections.add('FIGHTING STYLE: $fightingStyle');
-    }
-
-    vm.levelUpChoices.forEach((lvl, choice) {
-      if (choice['type'] == 'feat') {
-        final featName = choice['data']['name'] ?? '';
-        final featDesc = CharacterSheetTextUtils.cleanPdfText(
-          choice['data']['desc'] ?? '',
-        );
-
-        if (featName.isNotEmpty) {
-          sections.add('FEAT (Lv$lvl): $featName\n$featDesc');
-        }
-      }
-    });
-
-    if (vm.dragonbornTraitsSummary.isNotEmpty) {
-      sections.add('DRACONIC ANCESTRY\n${vm.dragonbornTraitsSummary}');
-    }
-
-    if (sections.isEmpty) {
-      return 'No se encontraron rasgos de clase o trasfondo para este nivel.';
-    }
-
-    return sections.join('\n\n──────────────────────────\n\n');
   }
+
+  // ─────────────────────────────────────────────────────────────
+  // Fighting Style
+  // ─────────────────────────────────────────────────────────────
+
+  final fightingStyle = detailVM?.selectedFightingStyleName;
+
+  if (fightingStyle != null &&
+      fightingStyle.trim().isNotEmpty) {
+    sections.add(
+      'FIGHTING STYLE: ${fightingStyle.trim()}',
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Feats
+  // ─────────────────────────────────────────────────────────────
+
+  vm.levelUpChoices.forEach((level, choice) {
+    if (choice['type'] != 'feat') {
+      return;
+    }
+
+    final featData = choice['data'];
+
+    if (featData is! Map) {
+      return;
+    }
+
+    final featName = (featData['name'] ?? '')
+        .toString()
+        .trim();
+
+    final featDescription =
+        CharacterSheetTextUtils.cleanPdfText(
+      featData['desc'] ?? '',
+    );
+
+    if (featName.isEmpty) {
+      return;
+    }
+
+    final section = StringBuffer(
+      'FEAT (Lv$level): $featName',
+    );
+
+    if (featDescription.isNotEmpty) {
+      section
+        ..writeln()
+        ..write(featDescription);
+    }
+
+    sections.add(section.toString());
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Dragonborn
+  // ─────────────────────────────────────────────────────────────
+
+  if (vm.dragonbornTraitsSummary.isNotEmpty) {
+    sections.add(
+      'DRACONIC ANCESTRY\n'
+      '${vm.dragonbornTraitsSummary}',
+    );
+  }
+
+  if (sections.isEmpty) {
+    return 'No se encontraron rasgos de clase o '
+        'trasfondo para este nivel.';
+  }
+
+  return sections.join(
+    '\n\n──────────────────────────\n\n',
+  );
+}
+  static String _compactClassFeatureForPdf({
+  required String classSlug,
+  required String featureTitle,
+  required String rawDescription,
+}) {
+  final cleanDescription =
+      CharacterSheetTextUtils.cleanPdfText(
+    rawDescription,
+  );
+
+  if (cleanDescription.isEmpty) {
+    return '';
+  }
+
+  if (classSlug != 'warlock') {
+    return cleanDescription;
+  }
+
+  switch (featureTitle) {
+    case 'eldritch invocations':
+      return 'You learn special Eldritch Invocations according '
+          'to your warlock level. Record only the invocations '
+          'selected for this character.';
+
+    case 'pact boon':
+      return 'At 3rd level, your patron grants you one Pact Boon: '
+          'Pact of the Chain, Pact of the Blade, or Pact of the '
+          'Tome. Record only the boon selected for this character.';
+
+    default:
+
+      if (_containsWarlockInvocationCatalog(
+        cleanDescription,
+      )) {
+        return 'Eldritch invocation catalog omitted from the '
+            'character sheet. Consult the application for the '
+            'available invocation descriptions.';
+      }
+
+      return cleanDescription;
+  }
+}
+
+static bool _shouldSkipWarlockFeature(
+  String normalizedTitle,
+) {
+  const skippedTitles = <String>{
+    'pact of the chain',
+    'pact of the blade',
+    'pact of the tome',
+    'your pact boon',
+    'otherworldly patrons',
+  };
+
+  return skippedTitles.contains(normalizedTitle);
+}
+
+static bool _containsWarlockInvocationCatalog(
+  String description,
+) {
+  final normalized = description.toLowerCase();
+  var matches = 0;
+
+  const invocationNames = <String>[
+    'agonizing blast',
+    'armor of shadows',
+    'ascendant step',
+    'beast speech',
+    'beguiling influence',
+    "devil's sight",
+    'eldritch sight',
+    'eldritch spear',
+    'fiendish vigor',
+    'mask of many faces',
+    'repelling blast',
+    'thirsting blade',
+    'witch sight',
+  ];
+
+  for (final name in invocationNames) {
+    if (normalized.contains(name)) {
+      matches++;
+    }
+
+    if (matches >= 3) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 
   static _SpellInfo _buildSpellInfo(
     CreateCharacterViewModel vm,
@@ -529,37 +779,6 @@ class CharacterSheetBuilder {
     return slotCounts;
   }
 
-  static String _atkBonus(
-    WeaponEntry entry,
-    int strMod,
-    int dexMod,
-    int profBonus,
-  ) {
-    final statMod = _weaponStatMod(entry, strMod, dexMod);
-    return CharacterSheetTextUtils.sign(statMod + profBonus);
-  }
-
-  static String _damageText(WeaponEntry entry, int strMod, int dexMod) {
-    final statMod = _weaponStatMod(entry, strMod, dexMod);
-    final dice = entry.weapon.damageDice.isNotEmpty
-        ? entry.weapon.damageDice
-        : '-';
-    final mod = statMod != 0 ? ' ${CharacterSheetTextUtils.sign(statMod)}' : '';
-
-    return '$dice$mod ${entry.weapon.damageType}'.trim();
-  }
-
-  static int _weaponStatMod(WeaponEntry entry, int strMod, int dexMod) {
-    final isFinesse = entry.weapon.properties.any(
-      (p) => p.toLowerCase().contains('finesse'),
-    );
-
-    if (isFinesse) {
-      return strMod > dexMod ? strMod : dexMod;
-    }
-
-    return entry.weapon.isRanged ? dexMod : strMod;
-  }
 }
 
 class _SpellInfo {

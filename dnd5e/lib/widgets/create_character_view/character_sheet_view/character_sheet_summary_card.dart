@@ -19,10 +19,17 @@ class CharacterSheetSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final proficiencyBonus = CreateCharacterViewModel.proficiencyBonus(vm.level);
-    final manualHp = detailVM?.calculateTotalHP() ?? 0;
+    final proficiencyBonus = CreateCharacterViewModel.proficiencyBonus(
+      vm.level,
+    );
+    final manualHp =
+        detailVM?.calculateTotalHP(
+          racialBonusPerLevel: vm.racialHitPointBonusPerLevel,
+        ) ??
+        0;
     final maxHp = manualHp > 0 ? manualHp : vm.maxHp;
     final armorClass = invVM.calculateTotalAC(
+      characterClass: vm.selectedClass,
       dexMod: vm.getModifier('Dexterity'),
       conMod: vm.getModifier('Constitution'),
       wisMod: vm.getModifier('Wisdom'),
@@ -69,6 +76,11 @@ class CharacterSheetSummaryCard extends StatelessWidget {
                   Icons.history_edu,
                 ),
               _summaryChip('HP: $maxHp', Icons.favorite),
+              if (vm.hasDwarvenToughness)
+                _summaryChip(
+                  'Dwarven Toughness +${vm.racialHitPointBonus}',
+                  Icons.health_and_safety,
+                ),
               _summaryChip('AC: $armorClass', Icons.shield),
               _summaryChip('Prof: +$proficiencyBonus', Icons.star),
             ],
