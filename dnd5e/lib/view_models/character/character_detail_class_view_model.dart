@@ -65,14 +65,45 @@ class DetailClassViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void syncLevels(int currentLevel, int hitDieMax) {
-    _hpRolls[1] = hitDieMax;
+  void restoreProgression({
+    Map<int, int> hpRolls = const {},
+    Map<String, dynamic>? selectedArchetype,
+    Map<String, String>? selectedFightingStyle,
+    String? selectedFightingStyleName,
+  }) {
+    _hpRolls
+      ..clear()
+      ..addAll(hpRolls);
+    _selectedArchetype = selectedArchetype == null
+        ? null
+        : Map<String, dynamic>.from(selectedArchetype);
+    _selectedFightingStyle = selectedFightingStyle == null
+        ? null
+        : Map<String, String>.from(selectedFightingStyle);
+    _selectedFightingStyleName = selectedFightingStyleName;
+    notifyListeners();
+  }
 
-    for (int i = 2; i <= currentLevel; i++) {
-      _hpRolls.putIfAbsent(i, () => (hitDieMax / 2).ceil());
+  void syncLevels(int currentLevel, int hitDieMax) {
+    var changed = false;
+
+    if (_hpRolls[1] != hitDieMax) {
+      _hpRolls[1] = hitDieMax;
+      changed = true;
     }
 
+    for (int i = 2; i <= currentLevel; i++) {
+      if (!_hpRolls.containsKey(i)) {
+        _hpRolls[i] = (hitDieMax / 2).ceil();
+        changed = true;
+      }
+    }
+
+    final previousLength = _hpRolls.length;
     _hpRolls.removeWhere((key, value) => key > currentLevel);
+    if (_hpRolls.length != previousLength) changed = true;
+
+    if (changed) notifyListeners();
   }
 
   void updateRoll(int level, int newValue, int hitDieMax) {

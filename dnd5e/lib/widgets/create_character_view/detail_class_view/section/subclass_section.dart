@@ -16,8 +16,10 @@ Widget subclassSection(
   required int unlockLevel,
   required int characterLevel,
   required List<String> existingSkills,
+  bool selectionLocked = false,
 }) {
   final grantedSpells = subclassVM.grantedSpellsForLevel(characterLevel);
+  final canSelectArchetype = canChoose && !selectionLocked;
   final success = context.dndColors.success;
   final magicAccent = context.isDarkMode
       ? const Color(0xFFD8B4FE)
@@ -46,6 +48,15 @@ Widget subclassSection(
           text: 'Your $subtypesName unlocks at level $unlockLevel.',
         ),
       if (canChoose) ...[
+        if (selectionLocked && dvm.selectedArchetype != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: infoBox(
+              icon: Icons.lock_outline,
+              color: Colors.amber,
+              text: 'Your existing subclass is preserved during level up.',
+            ),
+          ),
         if (dvm.selectedArchetype == null)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
@@ -82,7 +93,7 @@ Widget subclassSection(
           context,
           arch: archetype,
           dvm: dvm,
-          canChoose: canChoose,
+          canChoose: canSelectArchetype,
         ),
       ),
       if (canChoose &&

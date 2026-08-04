@@ -1,0 +1,1122 @@
+diff --git a/dnd5e/lib/data/models/saved_character_state.dart b/dnd5e/lib/data/models/saved_character_state.dart
+index a3df33f..ec81a98 100644
+--- a/dnd5e/lib/data/models/saved_character_state.dart
++++ b/dnd5e/lib/data/models/saved_character_state.dart
+@@ -54,6 +54,9 @@ class CharacterPdfVersion {
+ class SavedCharacterState {
+   const SavedCharacterState({
+     required this.id,
++    String? lineageId,
++    this.parentCharacterId,
++    this.isCurrentVersion = true,
+     required this.name,
+     required this.level,
+     required this.raceData,
+@@ -94,9 +97,20 @@ class SavedCharacterState {
+     this.pdfHistory = const [],
+     required this.createdAt,
+     required this.updatedAt,
+-  });
++  }) : lineageId = lineageId ?? id;
+ 
+   final String id;
++
++  /// Shared identifier for every saved version of the same character.
++  final String lineageId;
++
++  /// Version used as the starting point for this level-up.
++  final String? parentCharacterId;
++
++  /// Only one version in a lineage is marked as the current main version.
++  /// Historical versions remain independently usable for another level-up.
++  final bool isCurrentVersion;
++
+   final String name;
+   final int level;
+   final Map<String, dynamic> raceData;
+@@ -144,9 +158,76 @@ class SavedCharacterState {
+ 
+   bool get canLevelUp => level < 20;
+ 
++  SavedCharacterState copyWith({
++    bool? isCurrentVersion,
++  }) {
++    return SavedCharacterState(
++      id: id,
++      lineageId: lineageId,
++      parentCharacterId: parentCharacterId,
++      isCurrentVersion: isCurrentVersion ?? this.isCurrentVersion,
++      name: name,
++      level: level,
++      raceData: Map<String, dynamic>.from(raceData),
++      classData: Map<String, dynamic>.from(classData),
++      backgroundData: Map<String, dynamic>.from(backgroundData),
++      baseStats: Map<String, int>.from(baseStats),
++      levelUpChoices: {
++        for (final entry in levelUpChoices.entries)
++          entry.key: Map<String, dynamic>.from(entry.value),
++      },
++      featChoices: Map<int, SavedFeatChoice>.from(featChoices),
++      selectedDwarvenToolProficiency: selectedDwarvenToolProficiency,
++      selectedDraconicAncestry: selectedDraconicAncestry == null
++          ? null
++          : Map<String, String>.from(selectedDraconicAncestry!),
++      selectedClassSkills: List<String>.from(selectedClassSkills),
++      selectedExpertise: List<String>.from(selectedExpertise),
++      selectedRacialLanguages: List<String>.from(selectedRacialLanguages),
++      selectedBackgroundLanguages:
++          List<String>.from(selectedBackgroundLanguages),
++      selectedFeatLanguages: List<String>.from(selectedFeatLanguages),
++      selectedEquipmentPackageIndex: selectedEquipmentPackageIndex,
++      hpRolls: Map<int, int>.from(hpRolls),
++      selectedArchetype: selectedArchetype == null
++          ? null
++          : Map<String, dynamic>.from(selectedArchetype!),
++      selectedFightingStyle: selectedFightingStyle == null
++          ? null
++          : Map<String, String>.from(selectedFightingStyle!),
++      selectedFightingStyleName: selectedFightingStyleName,
++      selectedBonusSkills: List<String>.from(selectedBonusSkills),
++      selectedSpellTableId: selectedSpellTableId,
++      selectedSpells: {
++        for (final entry in selectedSpells.entries)
++          entry.key: List<String>.from(entry.value),
++      },
++      equippedArmorSlug: equippedArmorSlug,
++      equippedShieldSlug: equippedShieldSlug,
++      weaponQuantities: Map<String, int>.from(weaponQuantities),
++      tools: List<String>.from(tools),
++      money: Map<String, int>.from(money),
++      treasuresText: treasuresText,
++      playerName: playerName,
++      alignment: alignment,
++      temporaryHp: temporaryHp,
++      personalityTraits: personalityTraits,
++      ideals: ideals,
++      bonds: bonds,
++      flaws: flaws,
++      currentPdfPath: currentPdfPath,
++      pdfHistory: List<CharacterPdfVersion>.from(pdfHistory),
++      createdAt: createdAt,
++      updatedAt: updatedAt,
++    );
++  }
++
+   Map<String, dynamic> toJson() => {
+-        'schemaVersion': 1,
++        'schemaVersion': 2,
+         'id': id,
++        'lineageId': lineageId,
++        'parentCharacterId': parentCharacterId,
++        'isCurrentVersion': isCurrentVersion,
+         'name': name,
+         'level': level,
+         'raceData': raceData,
+@@ -201,6 +282,8 @@ class SavedCharacterState {
+       };
+ 
+   factory SavedCharacterState.fromJson(Map<String, dynamic> json) {
++    final id = json['id']?.toString() ?? '';
++
+     final levelChoices = <int, Map<String, dynamic>>{};
+     final rawLevelChoices = json['levelUpChoices'];
+     if (rawLevelChoices is Map) {
+@@ -259,8 +342,16 @@ class SavedCharacterState {
+             .toList()
+         : <CharacterPdfVersion>[];
+ 
++    final rawLineageId = json['lineageId']?.toString().trim() ?? '';
++
+     return SavedCharacterState(
+-      id: json['id']?.toString() ?? '',
++      id: id,
++      lineageId: rawLineageId.isEmpty ? id : rawLineageId,
++      parentCharacterId: json['parentCharacterId']?.toString(),
++      isCurrentVersion: _asBool(
++        json['isCurrentVersion'],
++        fallback: true,
++      ),
+       name: json['name']?.toString() ?? '',
+       level: _asInt(json['level'], fallback: 1),
+       raceData: _dynamicMap(json['raceData']),
+@@ -321,6 +412,14 @@ int _asInt(dynamic value, {int fallback = 0}) {
+   return int.tryParse(value?.toString() ?? '') ?? fallback;
+ }
+ 
++bool _asBool(dynamic value, {required bool fallback}) {
++  if (value is bool) return value;
++  final normalized = value?.toString().trim().toLowerCase();
++  if (normalized == 'true') return true;
++  if (normalized == 'false') return false;
++  return fallback;
++}
++
+ List<String> _stringList(dynamic value) {
+   if (value is! Iterable) return const [];
+   return value
+diff --git a/dnd5e/lib/data/providers/character_progression_storage.dart b/dnd5e/lib/data/providers/character_progression_storage.dart
+index a55658e..45bc083 100644
+--- a/dnd5e/lib/data/providers/character_progression_storage.dart
++++ b/dnd5e/lib/data/providers/character_progression_storage.dart
+@@ -13,17 +13,9 @@ import '../models/saved_character_state.dart';
+ class CharacterProgressionStorage {
+   static const String _folderName = 'character_data';
+ 
+-  // ─────────────────────────────────────────────────────────────
+-  // Directorios
+-  // ─────────────────────────────────────────────────────────────
+-
+   static Future<Directory> charactersDirectory() async {
+-    final baseDirectory =
+-        await getApplicationDocumentsDirectory();
+-
+-    final directory = Directory(
+-      '${baseDirectory.path}/$_folderName',
+-    );
++    final baseDirectory = await getApplicationDocumentsDirectory();
++    final directory = Directory('${baseDirectory.path}/$_folderName');
+ 
+     if (!await directory.exists()) {
+       await directory.create(recursive: true);
+@@ -32,40 +24,11 @@ class CharacterProgressionStorage {
+     return directory;
+   }
+ 
+-  static Future<Directory> characterVersionsDirectory(
+-    String characterId,
+-  ) async {
++  static Future<List<SavedCharacterState>> listCharacters() async {
+     final directory = await charactersDirectory();
+-
+-    final versionsDirectory = Directory(
+-      '${directory.path}/'
+-      '${_safeId(characterId)}_versions',
+-    );
+-
+-    if (!await versionsDirectory.exists()) {
+-      await versionsDirectory.create(
+-        recursive: true,
+-      );
+-    }
+-
+-    return versionsDirectory;
+-  }
+-
+-  // ─────────────────────────────────────────────────────────────
+-  // Personajes actuales
+-  // ─────────────────────────────────────────────────────────────
+-
+-  static Future<List<SavedCharacterState>>
+-      listCharacters() async {
+-    final directory = await charactersDirectory();
+-
+     final files = await directory
+         .list()
+-        .where(
+-          (entity) =>
+-              entity is File &&
+-              entity.path.endsWith('.json'),
+-        )
++        .where((entity) => entity is File && entity.path.endsWith('.json'))
+         .cast<File>()
+         .toList();
+ 
+@@ -73,12 +36,8 @@ class CharacterProgressionStorage {
+ 
+     for (final file in files) {
+       try {
+-        final raw = await file.readAsString();
+-        final decoded = jsonDecode(raw);
+-
+-        if (decoded is! Map) {
+-          continue;
+-        }
++        final decoded = jsonDecode(await file.readAsString());
++        if (decoded is! Map) continue;
+ 
+         characters.add(
+           SavedCharacterState.fromJson(
+@@ -86,46 +45,36 @@ class CharacterProgressionStorage {
+           ),
+         );
+       } catch (_) {
+-        /*
+-         * Un archivo dañado no debe impedir que se
+-         * carguen los demás personajes.
+-         */
++        // A damaged JSON must not prevent the other versions from loading.
+       }
+     }
+ 
+-    characters.sort(
+-      (first, second) =>
+-          second.updatedAt.compareTo(first.updatedAt),
+-    );
++    characters.sort((first, second) {
++      final currentComparison = _boolScore(
++        second.isCurrentVersion,
++      ).compareTo(_boolScore(first.isCurrentVersion));
++
++      if (currentComparison != 0) return currentComparison;
++
++      final levelComparison = second.level.compareTo(first.level);
++      if (levelComparison != 0) return levelComparison;
++
++      return second.updatedAt.compareTo(first.updatedAt);
++    });
+ 
+     return characters;
+   }
+ 
+-  static Future<SavedCharacterState?> loadCharacter(
+-    String id,
+-  ) async {
+-    if (id.trim().isEmpty) {
+-      return null;
+-    }
++  static Future<SavedCharacterState?> loadCharacter(String id) async {
++    if (id.trim().isEmpty) return null;
+ 
+     final directory = await charactersDirectory();
+-
+-    final file = File(
+-      '${directory.path}/${_safeId(id)}.json',
+-    );
+-
+-    if (!await file.exists()) {
+-      return null;
+-    }
++    final file = File('${directory.path}/${_safeId(id)}.json');
++    if (!await file.exists()) return null;
+ 
+     try {
+-      final decoded = jsonDecode(
+-        await file.readAsString(),
+-      );
+-
+-      if (decoded is! Map) {
+-        return null;
+-      }
++      final decoded = jsonDecode(await file.readAsString());
++      if (decoded is! Map) return null;
+ 
+       return SavedCharacterState.fromJson(
+         Map<String, dynamic>.from(decoded),
+@@ -135,131 +84,19 @@ class CharacterProgressionStorage {
+     }
+   }
+ 
+-  static Future<SavedCharacterState?>
+-      findByCurrentPdfPath(
++  static Future<SavedCharacterState?> findByCurrentPdfPath(
+     String pdfPath,
+   ) async {
+     final characters = await listCharacters();
+ 
+     for (final character in characters) {
+-      if (character.currentPdfPath == pdfPath) {
+-        return character;
+-      }
++      if (character.currentPdfPath == pdfPath) return character;
+     }
+ 
+     return null;
+   }
+ 
+-  // ─────────────────────────────────────────────────────────────
+-  // Snapshots históricos
+-  // ─────────────────────────────────────────────────────────────
+-
+-  static Future<List<CharacterStateSnapshot>>
+-      listSnapshots(
+-    String characterId,
+-  ) async {
+-    if (characterId.trim().isEmpty) {
+-      return const [];
+-    }
+-
+-    final versionsDirectory =
+-        await characterVersionsDirectory(
+-      characterId,
+-    );
+-
+-    final files = await versionsDirectory
+-        .list()
+-        .where(
+-          (entity) =>
+-              entity is File &&
+-              entity.path.endsWith('.json'),
+-        )
+-        .cast<File>()
+-        .toList();
+-
+-    final snapshots = <CharacterStateSnapshot>[];
+-
+-    for (final file in files) {
+-      try {
+-        final decoded = jsonDecode(
+-          await file.readAsString(),
+-        );
+-
+-        if (decoded is! Map) {
+-          continue;
+-        }
+-
+-        final state = SavedCharacterState.fromJson(
+-          Map<String, dynamic>.from(decoded),
+-        );
+-
+-        snapshots.add(
+-          CharacterStateSnapshot(
+-            path: file.path,
+-            state: state,
+-          ),
+-        );
+-      } catch (_) {
+-        /*
+-         * Ignora únicamente el snapshot dañado.
+-         */
+-      }
+-    }
+-
+-    snapshots.sort((first, second) {
+-      final levelComparison =
+-          second.state.level.compareTo(
+-        first.state.level,
+-      );
+-
+-      if (levelComparison != 0) {
+-        return levelComparison;
+-      }
+-
+-      return second.state.updatedAt.compareTo(
+-        first.state.updatedAt,
+-      );
+-    });
+-
+-    return snapshots;
+-  }
+-
+-  static Future<SavedCharacterState?> loadSnapshot(
+-    String snapshotPath,
+-  ) async {
+-    if (snapshotPath.trim().isEmpty) {
+-      return null;
+-    }
+-
+-    final file = File(snapshotPath);
+-
+-    if (!await file.exists()) {
+-      return null;
+-    }
+-
+-    try {
+-      final decoded = jsonDecode(
+-        await file.readAsString(),
+-      );
+-
+-      if (decoded is! Map) {
+-        return null;
+-      }
+-
+-      return SavedCharacterState.fromJson(
+-        Map<String, dynamic>.from(decoded),
+-      );
+-    } catch (_) {
+-      return null;
+-    }
+-  }
+-
+-  // ─────────────────────────────────────────────────────────────
+-  // Guardado del personaje
+-  // ─────────────────────────────────────────────────────────────
+-
+-  static Future<SavedCharacterState>
+-      saveGeneratedCharacter({
++  static Future<SavedCharacterState> saveGeneratedCharacter({
+     required CreateCharacterViewModel vm,
+     required CharacterInventoryViewModel inventoryVM,
+     required String pdfPath,
+@@ -277,33 +114,38 @@ class CharacterProgressionStorage {
+     final selectedClass = vm.selectedClass;
+     final selectedRace = vm.selectedRace;
+ 
+-    if (selectedClass == null ||
+-        selectedRace == null) {
++    if (selectedClass == null || selectedRace == null) {
+       throw StateError(
+-        'A race and class are required before '
+-        'saving character progression.',
++        'A race and class are required before saving character progression.',
+       );
+     }
+ 
+     final now = DateTime.now();
+-    final existingId = vm.editingCharacterId;
++    final sourceId = vm.editingCharacterId;
++    final source = sourceId == null ? null : await loadCharacter(sourceId);
++
++    final createsLevelVersion = source != null &&
++        vm.isLevelUp &&
++        vm.level > source.level;
+ 
+-    final existing = existingId == null
+-        ? null
+-        : await loadCharacter(existingId);
++    final generatedRootId =
++        '${_safeId(vm.name)}_${now.microsecondsSinceEpoch}';
+ 
+-    final id = existing?.id ??
+-        existingId ??
+-        '${_safeId(vm.name)}_'
+-            '${now.microsecondsSinceEpoch}';
++    final sourceLineageId = source?.lineageId.trim() ?? '';
++    final lineageId = sourceLineageId.isNotEmpty
++        ? sourceLineageId
++        : source?.id ?? generatedRootId;
++
++    final id = createsLevelVersion
++        ? '${_safeId(lineageId)}_level_${vm.level}_'
++            '${now.microsecondsSinceEpoch}'
++        : source?.id ?? sourceId ?? generatedRootId;
+ 
+     final history = <CharacterPdfVersion>[
+-      ...?existing?.pdfHistory,
++      if (!createsLevelVersion) ...?source?.pdfHistory,
+     ];
+ 
+-    if (!history.any(
+-      (version) => version.path == pdfPath,
+-    )) {
++    if (!history.any((version) => version.path == pdfPath)) {
+       history.add(
+         CharacterPdfVersion(
+           level: vm.level,
+@@ -314,162 +156,85 @@ class CharacterProgressionStorage {
+     }
+ 
+     history.sort((first, second) {
+-      final levelComparison =
+-          first.level.compareTo(second.level);
+-
+-      if (levelComparison != 0) {
+-        return levelComparison;
+-      }
+-
+-      return first.createdAt.compareTo(
+-        second.createdAt,
+-      );
++      final levelComparison = first.level.compareTo(second.level);
++      if (levelComparison != 0) return levelComparison;
++      return first.createdAt.compareTo(second.createdAt);
+     });
+ 
+     final state = SavedCharacterState(
+       id: id,
++      lineageId: lineageId,
++      parentCharacterId:
++          createsLevelVersion ? source!.id : source?.parentCharacterId,
++      isCurrentVersion:
++          createsLevelVersion ? true : source?.isCurrentVersion ?? true,
+       name: vm.name,
+       level: vm.level,
+-      raceData: Map<String, dynamic>.from(
+-        selectedRace,
+-      ),
+-      classData: Map<String, dynamic>.from(
+-        selectedClass.toJson(),
+-      ),
+-      backgroundData:
+-          vm.selectedBackground == null
+-              ? <String, dynamic>{}
+-              : Map<String, dynamic>.from(
+-                  vm.selectedBackground!,
+-                ),
+-      baseStats: Map<String, int>.from(
+-        vm.baseStats,
+-      ),
++      raceData: Map<String, dynamic>.from(selectedRace),
++      classData: Map<String, dynamic>.from(selectedClass.toJson()),
++      backgroundData: vm.selectedBackground == null
++          ? <String, dynamic>{}
++          : Map<String, dynamic>.from(vm.selectedBackground!),
++      baseStats: Map<String, int>.from(vm.baseStats),
+       levelUpChoices: {
+-        for (final entry
+-            in vm.levelUpChoices.entries)
+-          entry.key:
+-              Map<String, dynamic>.from(
+-            entry.value,
+-          ),
++        for (final entry in vm.levelUpChoices.entries)
++          entry.key: Map<String, dynamic>.from(entry.value),
+       },
+       featChoices: {
+-        for (final entry
+-            in vm.featChoices.entries)
++        for (final entry in vm.featChoices.entries)
+           entry.key: SavedFeatChoice(
+-            chosenStat:
+-                entry.value.chosenStat,
+-            proficiencies:
+-                List<String>.from(
+-              entry.value.proficiencies,
+-            ),
+-            languages:
+-                List<String>.from(
+-              entry.value.languages,
+-            ),
++            chosenStat: entry.value.chosenStat,
++            proficiencies: List<String>.from(entry.value.proficiencies),
++            languages: List<String>.from(entry.value.languages),
+           ),
+       },
+-      selectedDwarvenToolProficiency:
+-          vm.selectedDwarvenToolProficiency,
+-      selectedDraconicAncestry:
+-          vm.selectedDraconicAncestry == null
+-              ? null
+-              : Map<String, String>.from(
+-                  vm.selectedDraconicAncestry!,
+-                ),
+-      selectedClassSkills:
+-          List<String>.from(
+-        vm.skillVM.selectedClassSkills,
+-      ),
+-      selectedExpertise:
+-          List<String>.from(
+-        vm.skillVM.selectedExpertise,
+-      ),
++      selectedDwarvenToolProficiency: vm.selectedDwarvenToolProficiency,
++      selectedDraconicAncestry: vm.selectedDraconicAncestry == null
++          ? null
++          : Map<String, String>.from(vm.selectedDraconicAncestry!),
++      selectedClassSkills: List<String>.from(vm.skillVM.selectedClassSkills),
++      selectedExpertise: List<String>.from(vm.skillVM.selectedExpertise),
+       selectedRacialLanguages:
+-          List<String>.from(
+-        vm.languageVM.selectedRacialLanguages,
+-      ),
++          List<String>.from(vm.languageVM.selectedRacialLanguages),
+       selectedBackgroundLanguages:
+-          List<String>.from(
+-        vm.languageVM.selectedBgLanguages,
+-      ),
++          List<String>.from(vm.languageVM.selectedBgLanguages),
+       selectedFeatLanguages:
+-          List<String>.from(
+-        vm.languageVM.selectedFeatLanguages,
+-      ),
+-      selectedEquipmentPackageIndex:
+-          vm.equipmentVM.selectedPackageIndex,
++          List<String>.from(vm.languageVM.selectedFeatLanguages),
++      selectedEquipmentPackageIndex: vm.equipmentVM.selectedPackageIndex,
+       hpRolls: detailVM == null
+-          ? Map<int, int>.from(
+-              existing?.hpRolls ??
+-                  const <int, int>{},
+-            )
+-          : Map<int, int>.from(
+-              detailVM.hpRolls,
+-            ),
+-      selectedArchetype:
+-          detailVM?.selectedArchetype == null
+-              ? existing?.selectedArchetype
+-              : Map<String, dynamic>.from(
+-                  detailVM!.selectedArchetype!,
+-                ),
+-      selectedFightingStyle:
+-          detailVM?.selectedFightingStyle == null
+-              ? existing?.selectedFightingStyle
+-              : Map<String, String>.from(
+-                  detailVM!
+-                      .selectedFightingStyle!,
+-                ),
++          ? Map<int, int>.from(source?.hpRolls ?? const <int, int>{})
++          : Map<int, int>.from(detailVM.hpRolls),
++      selectedArchetype: detailVM?.selectedArchetype == null
++          ? source?.selectedArchetype
++          : Map<String, dynamic>.from(detailVM!.selectedArchetype!),
++      selectedFightingStyle: detailVM?.selectedFightingStyle == null
++          ? source?.selectedFightingStyle
++          : Map<String, String>.from(detailVM!.selectedFightingStyle!),
+       selectedFightingStyleName:
+-          detailVM
+-                  ?.selectedFightingStyleName ??
+-              existing
+-                  ?.selectedFightingStyleName,
+-      selectedBonusSkills:
+-          subclassVM == null
+-              ? List<String>.from(
+-                  existing
+-                          ?.selectedBonusSkills ??
+-                      const <String>[],
+-                )
+-              : List<String>.from(
+-                  subclassVM
+-                      .selectedBonusSkills,
+-                ),
++          detailVM?.selectedFightingStyleName ?? source?.selectedFightingStyleName,
++      selectedBonusSkills: subclassVM == null
++          ? List<String>.from(source?.selectedBonusSkills ?? const <String>[])
++          : List<String>.from(subclassVM.selectedBonusSkills),
+       selectedSpellTableId:
+-          subclassVM?.selectedSpellTableId ??
+-              existing?.selectedSpellTableId,
++          subclassVM?.selectedSpellTableId ?? source?.selectedSpellTableId,
+       selectedSpells: spellVM == null
+           ? {
+-              for (final entry in (
+-                existing?.selectedSpells ??
+-                    const {},
+-              ).entries)
+-                entry.key:
+-                    List<String>.from(
+-                  entry.value,
+-                ),
++              for (final entry
++                  in (source?.selectedSpells ?? const <int, List<String>>{})
++                      .entries)
++                entry.key: List<String>.from(entry.value),
+             }
+           : {
+-              for (final entry in spellVM
+-                  .selectedSpells.entries)
+-                entry.key:
+-                    List<String>.from(
+-                  entry.value,
+-                ),
++              for (final entry in spellVM.selectedSpells.entries)
++                entry.key: List<String>.from(entry.value),
+             },
+-      equippedArmorSlug:
+-          inventoryVM.equippedArmor?.slug,
+-      equippedShieldSlug:
+-          inventoryVM.equippedShield?.slug,
++      equippedArmorSlug: inventoryVM.equippedArmor?.slug,
++      equippedShieldSlug: inventoryVM.equippedShield?.slug,
+       weaponQuantities: {
+-        for (final entry
+-            in inventoryVM.weaponEntries)
++        for (final entry in inventoryVM.weaponEntries)
+           entry.weapon.slug: entry.quantity,
+       },
+-      tools: List<String>.from(
+-        inventoryVM.tools,
+-      ),
++      tools: List<String>.from(inventoryVM.tools),
+       money: {
+         'gp': inventoryVM.gp,
+         'pp': inventoryVM.pp,
+@@ -477,8 +242,7 @@ class CharacterProgressionStorage {
+         'sp': inventoryVM.sp,
+         'cp': inventoryVM.cp,
+       },
+-      treasuresText:
+-          inventoryVM.treasuresText,
++      treasuresText: inventoryVM.treasuresText,
+       playerName: playerName,
+       alignment: alignment,
+       temporaryHp: temporaryHp,
+@@ -488,89 +252,90 @@ class CharacterProgressionStorage {
+       flaws: flaws,
+       currentPdfPath: pdfPath,
+       pdfHistory: history,
+-      createdAt: existing?.createdAt ?? now,
++      createdAt: createsLevelVersion ? now : source?.createdAt ?? now,
+       updatedAt: now,
+     );
+ 
+-    /*
+-     * existing representa el personaje antes de la
+-     * modificación. _writeState decidirá si necesita
+-     * conservarlo como snapshot.
+-     */
+-    await _writeState(
+-      state,
+-      previousState: existing,
+-    );
++    await _writeState(state);
++
++    if (createsLevelVersion) {
++      await _markOtherLineageVersionsHistorical(
++        lineageId,
++        exceptCharacterId: state.id,
++      );
++    }
+ 
+     return state;
+   }
+ 
+-  // ─────────────────────────────────────────────────────────────
+-  // Eliminación
+-  // ─────────────────────────────────────────────────────────────
+-
+-  static Future<void> deleteCharacterData(
+-    String id,
+-  ) async {
+-    if (id.trim().isEmpty) {
+-      return;
+-    }
++  static Future<void> deleteCharacterData(String id) async {
++    if (id.trim().isEmpty) return;
+ 
++    final deletedState = await loadCharacter(id);
+     final directory = await charactersDirectory();
++    final file = File('${directory.path}/${_safeId(id)}.json');
+ 
+-    final currentFile = File(
+-      '${directory.path}/${_safeId(id)}.json',
+-    );
+-
+-    if (await currentFile.exists()) {
+-      await currentFile.delete();
++    if (await file.exists()) {
++      await file.delete();
+     }
+ 
+-    final versionsDirectory = Directory(
+-      '${directory.path}/'
+-      '${_safeId(id)}_versions',
++    // Remove folders produced by the older snapshot implementation.
++    final oldVersionsDirectory = Directory(
++      '${directory.path}/${_safeId(id)}_versions',
+     );
++    if (await oldVersionsDirectory.exists()) {
++      await oldVersionsDirectory.delete(recursive: true);
++    }
+ 
+-    if (await versionsDirectory.exists()) {
+-      await versionsDirectory.delete(
+-        recursive: true,
+-      );
++    if (deletedState?.isCurrentVersion == true) {
++      await _promoteLatestLineageVersion(deletedState!.lineageId);
+     }
+   }
+ 
+-  // ─────────────────────────────────────────────────────────────
+-  // Escritura interna
+-  // ─────────────────────────────────────────────────────────────
+-
+-  static Future<void> _writeState(
+-    SavedCharacterState state, {
+-    SavedCharacterState? previousState,
++  static Future<void> _markOtherLineageVersionsHistorical(
++    String lineageId, {
++    required String exceptCharacterId,
+   }) async {
+-    /*
+-     * Se crea el snapshot solo cuando realmente existe
+-     * una progresión de nivel.
+-     *
+-     * Guardar un PDF nuevamente en el mismo nivel no
+-     * genera copias JSON innecesarias.
+-     */
+-    if (previousState != null &&
+-        previousState.level != state.level) {
+-      await _writeVersionSnapshot(
+-        previousState,
++    final characters = await listCharacters();
++
++    for (final character in characters) {
++      if (character.id == exceptCharacterId ||
++          character.lineageId != lineageId ||
++          !character.isCurrentVersion) {
++        continue;
++      }
++
++      await _writeState(
++        character.copyWith(isCurrentVersion: false),
+       );
+     }
++  }
+ 
+-    final directory = await charactersDirectory();
++  static Future<void> _promoteLatestLineageVersion(String lineageId) async {
++    final candidates = (await listCharacters())
++        .where((character) => character.lineageId == lineageId)
++        .toList();
+ 
+-    final file = File(
+-      '${directory.path}/'
+-      '${_safeId(state.id)}.json',
+-    );
++    if (candidates.isEmpty) return;
+ 
+-    final temporary = File(
+-      '${file.path}.tmp',
+-    );
++    candidates.sort((first, second) {
++      final levelComparison = second.level.compareTo(first.level);
++      if (levelComparison != 0) return levelComparison;
++      return second.updatedAt.compareTo(first.updatedAt);
++    });
++
++    final promoted = candidates.first;
++    if (!promoted.isCurrentVersion) {
++      await _writeState(
++        promoted.copyWith(isCurrentVersion: true),
++      );
++    }
++  }
+ 
++  static Future<void> _writeState(SavedCharacterState state) async {
++    final directory = await charactersDirectory();
++    final file = File('${directory.path}/${_safeId(state.id)}.json');
++    final temporary = File('${file.path}.tmp');
+     const encoder = JsonEncoder.withIndent('  ');
+ 
+     await temporary.writeAsString(
+@@ -585,83 +350,14 @@ class CharacterProgressionStorage {
+     await temporary.rename(file.path);
+   }
+ 
+-  static Future<String> _writeVersionSnapshot(
+-    SavedCharacterState state,
+-  ) async {
+-    final versionsDirectory =
+-        await characterVersionsDirectory(
+-      state.id,
+-    );
+-
+-    /*
+-     * Se usa updatedAt del estado anterior para obtener
+-     * un nombre estable. Si se reintenta la misma
+-     * operación, no se generan snapshots duplicados.
+-     */
+-    final versionId =
+-        'level_${state.level}_'
+-        '${state.updatedAt
+-            .toUtc()
+-            .microsecondsSinceEpoch}';
+-
+-    final file = File(
+-      '${versionsDirectory.path}/'
+-      '$versionId.json',
+-    );
+-
+-    if (await file.exists()) {
+-      return file.path;
+-    }
+-
+-    final temporary = File(
+-      '${file.path}.tmp',
+-    );
+-
+-    const encoder = JsonEncoder.withIndent('  ');
+-
+-    await temporary.writeAsString(
+-      encoder.convert(state.toJson()),
+-      flush: true,
+-    );
+-
+-    await temporary.rename(file.path);
+-
+-    return file.path;
+-  }
++  static int _boolScore(bool value) => value ? 1 : 0;
+ 
+   static String _safeId(String value) {
+     final cleaned = value
+         .trim()
+-        .replaceAll(
+-          RegExp(r'[^a-zA-Z0-9_\-]'),
+-          '_',
+-        )
+-        .replaceAll(
+-          RegExp(r'_+'),
+-          '_',
+-        );
++        .replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_')
++        .replaceAll(RegExp(r'_+'), '_');
+ 
+-    return cleaned.isEmpty
+-        ? 'character'
+-        : cleaned;
++    return cleaned.isEmpty ? 'character' : cleaned;
+   }
+ }
+-  
+-
+-class CharacterStateSnapshot {
+-  const CharacterStateSnapshot({
+-    required this.path,
+-    required this.state,
+-  });
+-
+-  final String path;
+-  final SavedCharacterState state;
+-
+-  int get level => state.level;
+-
+-  DateTime get createdAt => state.updatedAt;
+-
+-  String get pdfPath => state.currentPdfPath;
+-}
+-  
+-  
+\ No newline at end of file
+diff --git a/dnd5e/lib/views/tabs/character_tabs.dart b/dnd5e/lib/views/tabs/character_tabs.dart
+index 6688e6b..89c1e8f 100644
+--- a/dnd5e/lib/views/tabs/character_tabs.dart
++++ b/dnd5e/lib/views/tabs/character_tabs.dart
+@@ -26,7 +26,6 @@ class _CharacterTabState extends State<CharacterTab> {
+   bool _isLoading = true;
+   List<SavedCharacterSheet> _sheets = [];
+   Map<String, SavedCharacterState> _charactersByPdf = {};
+-  Map<String, int> _levelsByPdf = {};
+ 
+   @override
+   void initState() {
+@@ -58,13 +57,8 @@ class _CharacterTabState extends State<CharacterTab> {
+       _sheets = sheets;
+       _charactersByPdf = {
+         for (final character in characters)
+-          for (final version in character.pdfHistory)
+-            version.path: character,
+-      };
+-      _levelsByPdf = {
+-        for (final character in characters)
+-          for (final version in character.pdfHistory)
+-            version.path: version.level,
++          if (character.currentPdfPath?.trim().isNotEmpty == true)
++            character.currentPdfPath!: character,
+       };
+       _isLoading = false;
+     });
+@@ -106,15 +100,20 @@ class _CharacterTabState extends State<CharacterTab> {
+       return;
+     }
+ 
++    final isCurrentVersion = character.isCurrentVersion;
++
+     final confirmed = await showDialog<bool>(
+       context: context,
+       builder: (_) => AlertDialog(
+-        title: const Text('Level Up'),
++        title: Text(
++          isCurrentVersion ? 'Level Up' : 'Level Up From This Version',
++        ),
+         content: Text(
+           'Advance ${character.name} from level ${character.level} '
+           'to level ${character.level + 1}?\n\n'
+-          'The existing character data and spells will be loaded. A new PDF '
+-          'version will be generated when the process is completed.',
++          '${isCurrentVersion ? 'The current version' : 'This saved version'} '
++          'will remain unchanged. Completing the flow creates a new saved '
++          'character version and a new PDF.',
+         ),
+         actions: [
+           TextButton(
+@@ -124,7 +123,9 @@ class _CharacterTabState extends State<CharacterTab> {
+           FilledButton.icon(
+             onPressed: () => Navigator.pop(context, true),
+             icon: const Icon(Icons.trending_up),
+-            label: const Text('Level Up'),
++            label: Text(
++              isCurrentVersion ? 'Level Up' : 'Create New Version',
++            ),
+           ),
+         ],
+       ),
+@@ -147,15 +148,19 @@ class _CharacterTabState extends State<CharacterTab> {
+ 
+   Future<void> _deleteSheet(SavedCharacterSheet sheet) async {
+     final character = _charactersByPdf[sheet.path];
+-    final isCurrent = character?.currentPdfPath == sheet.path;
++    final isSavedVersion = character != null;
++
+     final confirm = await showDialog<bool>(
+       context: context,
+       builder: (_) => AlertDialog(
+-        title: Text(isCurrent ? 'Delete Character' : 'Delete PDF'),
++        title: Text(
++          isSavedVersion ? 'Delete Saved Version' : 'Delete PDF',
++        ),
+         content: Text(
+-          isCurrent
+-              ? 'Delete "${character!.name}" and its saved level-up data? '
+-                  'Older PDF versions are not removed automatically.'
++          isSavedVersion
++              ? 'Delete ${character.name} level ${character.level} and its '
++                  'saved level-up data? Other saved versions of this '
++                  'character will remain available.'
+               : 'Delete "${sheet.displayName}"?',
+         ),
+         actions: [
+@@ -178,9 +183,11 @@ class _CharacterTabState extends State<CharacterTab> {
+     if (confirm != true) return;
+ 
+     await CharacterSheetStorage.deleteSheet(sheet.path);
+-    if (character != null && isCurrent) {
++
++    if (character != null) {
+       await CharacterProgressionStorage.deleteCharacterData(character.id);
+     }
++
+     await _loadSheets();
+   }
+ 
+@@ -260,11 +267,7 @@ class _CharacterTabState extends State<CharacterTab> {
+                             itemBuilder: (context, index) {
+                               final sheet = sheets[index];
+                               final exists = File(sheet.path).existsSync();
+-                              final character =
+-                                  _charactersByPdf[sheet.path];
+-                              final versionLevel = _levelsByPdf[sheet.path];
+-                              final isCurrent = character?.currentPdfPath ==
+-                                  sheet.path;
++                              final character = _charactersByPdf[sheet.path];
+ 
+                               return Card(
+                                 elevation: 2,
+@@ -291,8 +294,8 @@ class _CharacterTabState extends State<CharacterTab> {
+                                             '${_formatSize(sheet.sizeBytes)} • '
+                                             'Legacy PDF'
+                                         : '${character.className} '
+-                                            'Level ${versionLevel ?? character.level} • '
+-                                            '${isCurrent ? 'Current' : 'History'} • '
++                                            'Level ${character.level} • '
++                                            '${character.isCurrentVersion ? 'Current version' : 'Previous version'} • '
+                                             '${_formatDate(sheet.modifiedAt)} • '
+                                             '${_formatSize(sheet.sizeBytes)}',
+                                   ),
+@@ -326,16 +329,15 @@ class _CharacterTabState extends State<CharacterTab> {
+                                       }
+ 
+                                       if (value == 'levelUp' &&
+-                                          character != null &&
+-                                          isCurrent) {
++                                          character != null) {
+                                         await _startLevelUp(character);
+                                       }
+ 
+                                       if (value == 'share' && exists) {
+                                         await Share.shareXFiles(
+                                           [XFile(sheet.path)],
+-                                          subject: character?.name ??
+-                                              sheet.displayName,
++                                          subject:
++                                              character?.name ?? sheet.displayName,
+                                         );
+                                       }
+ 
+@@ -348,13 +350,15 @@ class _CharacterTabState extends State<CharacterTab> {
+                                         value: 'open',
+                                         child: Text('Open'),
+                                       ),
+-                                      if (character != null && isCurrent)
++                                      if (character != null)
+                                         PopupMenuItem(
+                                           value: 'levelUp',
+                                           enabled: character.canLevelUp,
+                                           child: Text(
+                                             character.canLevelUp
+-                                                ? 'Level Up'
++                                                ? character.isCurrentVersion
++                                                    ? 'Level Up'
++                                                    : 'Level Up from here'
+                                                 : 'Maximum Level',
+                                           ),
+                                         ),

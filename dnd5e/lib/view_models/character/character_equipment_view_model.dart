@@ -37,7 +37,12 @@ class CharacterEquipmentViewModel extends ChangeNotifier {
   }
 
   void setPackageIndex(int index) {
-    _selectedPackageIndex = index;
+    if (_equipmentPackages.isEmpty) {
+      _selectedPackageIndex = 0;
+    } else {
+      _selectedPackageIndex =
+          index.clamp(0, _equipmentPackages.length - 1).toInt();
+    }
     notifyListeners();
   }
 

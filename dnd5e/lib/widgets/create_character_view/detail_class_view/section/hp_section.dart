@@ -7,8 +7,9 @@ Widget buildHPSection(
   BuildContext context,
   DetailClassViewModel dvm,
   String? hitDiceRaw,
-  int currentLevel,
-) {
+  int currentLevel, {
+  int? lockedThroughLevel,
+}) {
   final hitDieMax = dvm.parseHitDie(hitDiceRaw);
   final totalHP = dvm.calculateTotalHP();
   final conMod = dvm.conModifier;
@@ -137,6 +138,8 @@ Widget buildHPSection(
             final level = index + 1;
             final roll = dvm.hpRolls[level] ?? hitDieMax;
             final isLevelOne = level == 1;
+            final isLocked = isLevelOne ||
+                (lockedThroughLevel != null && level <= lockedThroughLevel);
             final rowTotal = roll + conMod + racialBonusPerLevel;
 
             return Container(
@@ -152,13 +155,13 @@ Widget buildHPSection(
                 children: [
                   CircleAvatar(
                     radius: 14,
-                    backgroundColor: isLevelOne
+                    backgroundColor: isLocked
                         ? context.colors.primary
                         : context.dndColors.surfaceStrong,
                     child: Text(
                       '$level',
                       style: TextStyle(
-                        color: isLevelOne
+                        color: isLocked
                             ? context.colors.onPrimary
                             : context.colors.onSurface,
                         fontSize: 11,
@@ -168,7 +171,7 @@ Widget buildHPSection(
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: isLevelOne
+                    child: isLocked
                         ? Row(
                             children: [
                               Icon(
@@ -178,7 +181,7 @@ Widget buildHPSection(
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '$roll (max)',
+                                isLevelOne ? '$roll (max)' : '$roll (saved)',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: context.dndColors.mutedText,
@@ -290,11 +293,14 @@ Widget buildHPSection(
       Padding(
         padding: const EdgeInsets.only(top: 8),
         child: Text(
-          hasRacialBonus
-              ? 'Level 1 uses the maximum die value. Dwarven Toughness adds '
-                    '+$racialBonusPerLevel HP at every character level.'
-              : 'Level 1 always uses the maximum die value. '
-                    "Adjust each level's roll to match your actual dice results.",
+          lockedThroughLevel != null
+              ? 'Previous levels are locked. Adjust only the hit-point roll '
+                    'for level $currentLevel.'
+              : hasRacialBonus
+                  ? 'Level 1 uses the maximum die value. Dwarven Toughness adds '
+                        '+$racialBonusPerLevel HP at every character level.'
+                  : 'Level 1 always uses the maximum die value. '
+                        "Adjust each level's roll to match your actual dice results.",
           style: TextStyle(
             fontSize: 11,
             color: context.dndColors.mutedText,

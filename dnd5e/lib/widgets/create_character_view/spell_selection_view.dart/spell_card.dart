@@ -9,6 +9,7 @@ class SpellCard extends StatelessWidget {
   final bool isSelected;
   final bool canAdd;
   final bool isAutomatic;
+  final bool wasPreviouslyKnown;
   final VoidCallback? onTap;
   final bool isCompendiumMode;
 
@@ -18,6 +19,7 @@ class SpellCard extends StatelessWidget {
     this.isSelected = false,
     this.canAdd = false,
     this.isAutomatic = false,
+    this.wasPreviouslyKnown = false,
     this.onTap,
     this.isCompendiumMode = false,
   });
@@ -78,6 +80,8 @@ class SpellCard extends StatelessWidget {
                 ),
                 if (isAutomatic)
                   _badge('GRANTED', context.dndColors.info),
+                if (wasPreviouslyKnown && !isAutomatic)
+                  _badge('PREVIOUS', context.colors.primary),
                 if (spell.concentration)
                   _badge('C', context.dndColors.warning),
                 const SizedBox(width: 2),

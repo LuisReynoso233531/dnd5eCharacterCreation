@@ -110,6 +110,15 @@ class CharacterSkillViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void restoreSelections({
+    List<String> classSkills = const [],
+    List<String> expertise = const [],
+  }) {
+    _selectedClassSkills = List<String>.from(classSkills);
+    _selectedExpertise = List<String>.from(expertise);
+    notifyListeners();
+  }
+
   void setExpertiseAt({
     required int index,
     required String proficiency,

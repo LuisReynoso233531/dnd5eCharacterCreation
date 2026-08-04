@@ -195,6 +195,17 @@ class CharacterLanguageViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void restoreSelections({
+    List<String> racialLanguages = const [],
+    List<String> backgroundLanguages = const [],
+    List<String> featLanguages = const [],
+  }) {
+    _selectedRacialLanguages = List<String>.from(racialLanguages);
+    _selectedBgLanguages = List<String>.from(backgroundLanguages);
+    _featLanguages = List<String>.from(featLanguages);
+    notifyListeners();
+  }
+
   void reset() {
     _selectedRace = null;
     _selectedBackground = null;

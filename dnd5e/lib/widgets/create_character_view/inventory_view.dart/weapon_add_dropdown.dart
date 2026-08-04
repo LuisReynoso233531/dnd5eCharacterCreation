@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../view_models/character/character_inventory_view_model.dart';
+import '../../../view_models/character/character_inventory_view_model.dart';
 import '../../../utils/styled_dropdown.dart';
 
 class WeaponAddDropdown extends StatefulWidget {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../utils/app_theme.dart';
+import '../../../utils/app_theme.dart';
 import '../../../view_models/character/character_inventory_view_model.dart';
 
 class ArmorClassCard extends StatelessWidget {

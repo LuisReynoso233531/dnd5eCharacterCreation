@@ -224,6 +224,30 @@ class CharacterSubclassViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void restoreProgression({
+    Map<String, dynamic>? archetype,
+    List<String> existingSkills = const [],
+    List<String> selectedBonusSkills = const [],
+    String? selectedSpellTableId,
+  }) {
+    setArchetype(archetype, existingSkills);
+
+    _selectedBonusSkills
+      ..clear()
+      ..addAll(
+        selectedBonusSkills.where(
+          (skill) => _availableOptionsForChoice.contains(skill),
+        ),
+      );
+
+    if (selectedSpellTableId != null &&
+        _spellTables.any((table) => table.id == selectedSpellTableId)) {
+      _selectedSpellTableId = selectedSpellTableId;
+    }
+
+    notifyListeners();
+  }
+
   void selectSpellTable(String tableId) {
     if (!_spellTables.any((table) => table.id == tableId)) return;
     _selectedSpellTableId = tableId;

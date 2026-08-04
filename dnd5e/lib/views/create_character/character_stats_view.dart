@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../view_models/character/character_view_model.dart';
+import '../../view_models/character/character_view_model.dart';
 import '../../widgets/create_character_view/stat_view/level_and_roll_card.dart';
 import '../../widgets/create_character_view/stat_view/level_up_improvements.dart';
 import '../../widgets/create_character_view/stat_view/stats_bottom_button.dart';
@@ -15,12 +15,32 @@ class CharacterStatsView extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Ability Scores"),
+        title: Text(vm.isLevelUp ? 'Level Up — Ability Scores' : 'Ability Scores'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            if (vm.isLevelUp) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.trending_up),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Updating ${vm.name} from level ${vm.originalLevel} '
+                          'to level ${vm.level}. Existing choices are loaded.',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             const LevelAndRollCard(),
             const SizedBox(height: 20),
             const StatsListTable(),

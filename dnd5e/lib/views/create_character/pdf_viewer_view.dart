@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
-import '../../../utils/app_theme.dart';
+import '../../utils/app_theme.dart';
 
 class PdfViewerView extends StatefulWidget {
   final String filePath;

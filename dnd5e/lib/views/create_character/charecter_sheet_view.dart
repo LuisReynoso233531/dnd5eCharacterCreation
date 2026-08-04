@@ -7,9 +7,10 @@ import '../../view_models/character/character_inventory_view_model.dart';
 import '../../view_models/character/character_spell_view_model.dart';
 import '../../view_models/character/character_detail_class_view_model.dart';
 import '../../view_models/character/character_subclass_view_model.dart';
+import '../../data/providers/character_progression_storage.dart';
 import '../../data/providers/character_sheet_service.dart';
-import '../../../utils/app_theme.dart';
-import '../../../views/create_character/pdf_viewer_view.dart';
+import '../../utils/app_theme.dart';
+import 'pdf_viewer_view.dart';
 
 import '../../widgets/create_character_view/character_sheet_view/character_sheet_summary_card.dart';
 import '../../widgets/create_character_view/character_sheet_view/character_sheet_checklist_card.dart';
@@ -71,7 +72,19 @@ class _CharacterSheetViewState extends State<CharacterSheetView> {
 
     if (_loadedInitialName) return;
 
-    _characterNameCtrl.text = context.read<CreateCharacterViewModel>().name;
+    final vm = context.read<CreateCharacterViewModel>();
+    final saved = vm.levelUpState;
+
+    _characterNameCtrl.text = vm.name;
+    if (vm.isLevelUp && saved != null) {
+      _playerNameCtrl.text = saved.playerName;
+      _alignmentCtrl.text = saved.alignment;
+      _tempHpCtrl.text = saved.temporaryHp;
+      _personalityCtrl.text = saved.personalityTraits;
+      _idealsCtrl.text = saved.ideals;
+      _bondsCtrl.text = saved.bonds;
+      _flawsCtrl.text = saved.flaws;
+    }
     _loadedInitialName = true;
   }
 
@@ -168,19 +181,21 @@ class _CharacterSheetViewState extends State<CharacterSheetView> {
   }
 
   void _openPreview(CreateCharacterViewModel vm) {
-  if (_generatedPath == null) return;
+    if (_generatedPath == null) return;
 
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => PdfViewerView(
-        filePath: _generatedPath!,
-        title: vm.name.isNotEmpty ? '${vm.name} — Sheet' : 'Character Sheet',
-        showHomeButton: true,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PdfViewerView(
+          filePath: _generatedPath!,
+          title: vm.name.isNotEmpty
+              ? '${vm.name} — Sheet'
+              : 'Character Sheet',
+          showHomeButton: true,
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _personalInformationFields(CreateCharacterViewModel vm) {
     return Column(
@@ -293,7 +308,11 @@ class _CharacterSheetViewState extends State<CharacterSheetView> {
               )
             : const Icon(Icons.picture_as_pdf, size: 22),
         label: Text(
-          _isGenerating ? 'Generating...' : 'Generate Character Sheet',
+          _isGenerating
+              ? 'Generating...'
+              : vm.isLevelUp
+                  ? 'Generate Updated Character Sheet'
+                  : 'Generate Character Sheet',
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
       ),
@@ -334,6 +353,24 @@ class _CharacterSheetViewState extends State<CharacterSheetView> {
         blankPdfAssetPath: _kSheetAsset,
       );
 
+      final savedState =
+          await CharacterProgressionStorage.saveGeneratedCharacter(
+        vm: vm,
+        inventoryVM: widget.invVM,
+        detailVM: widget.detailVM,
+        subclassVM: widget.subclassVM,
+        spellVM: widget.spellVM,
+        pdfPath: path,
+        playerName: _playerNameCtrl.text.trim(),
+        alignment: _alignmentCtrl.text.trim(),
+        temporaryHp: _tempHpCtrl.text.trim(),
+        personalityTraits: _personalityCtrl.text.trim(),
+        ideals: _idealsCtrl.text.trim(),
+        bonds: _bondsCtrl.text.trim(),
+        flaws: _flawsCtrl.text.trim(),
+      );
+      vm.markProgressionSaved(savedState);
+
       if (!mounted) return;
 
       setState(() {
@@ -344,7 +381,9 @@ class _CharacterSheetViewState extends State<CharacterSheetView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Character sheet generated!',
+            vm.isLevelUp
+                ? 'Character advanced to level ${vm.level}!'
+                : 'Character sheet generated!',
             style: TextStyle(color: context.dndColors.onSuccessContainer),
           ),
           backgroundColor: context.dndColors.successContainer,

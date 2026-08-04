@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../utils/app_theme.dart';
+import '../../../utils/app_theme.dart';
 
 class BackgroundEquipmentCard extends StatelessWidget {
   final String text;

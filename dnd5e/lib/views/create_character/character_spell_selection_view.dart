@@ -128,6 +128,17 @@ class _CharacterSpellSelectionViewState
                   ctx.read<CharacterRepository>(),
                 );
                 invVM.updateFromBackground(vm.selectedBackground);
+                final saved = vm.levelUpState;
+                if (vm.isLevelUp && saved != null) {
+                  invVM.restoreSelections(
+                    armorSlug: saved.equippedArmorSlug,
+                    shieldSlug: saved.equippedShieldSlug,
+                    weaponQuantities: saved.weaponQuantities,
+                    tools: saved.tools,
+                    money: saved.money,
+                    treasuresText: saved.treasuresText,
+                  );
+                }
                 return invVM;
               },
             ),
@@ -165,7 +176,7 @@ class _CharacterSpellSelectionViewState
       return Scaffold(
         appBar: AppBar(
           title: const Text('Spells'),
-          ),
+        ),
         body: Center(
           child: Text(
             'This class or subclass does not have spellcasting at this level.',
@@ -185,7 +196,7 @@ class _CharacterSpellSelectionViewState
       return Scaffold(
         appBar: AppBar(
           title: const Text('Spells'),
-          ),
+        ),
         body: Center(
           child: Text(
             'No spells are available at this level.',
@@ -221,7 +232,11 @@ class _CharacterSpellSelectionViewState
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Spell Selection: ${source.displayName} Lv${vm.level}'),
+        title: Text(
+          vm.isLevelUp
+              ? 'Level Up Spells: ${source.displayName} Lv${vm.level}'
+              : 'Spell Selection: ${source.displayName} Lv${vm.level}',
+        ),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -269,6 +284,24 @@ class _CharacterSpellSelectionViewState
       bottomNavigationBar: _buildBottomBar(context, vm, spellVM),
       body: Column(
         children: [
+          if (vm.isLevelUp)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 9,
+              ),
+              color: context.dndColors.infoContainer,
+              child: Text(
+                'Previously known spells are preselected. You may keep them '
+                'or replace selections while staying within the new limit.',
+                style: TextStyle(
+                  color: context.dndColors.onInfoContainer,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           magicStatsBar(
             context,
             source.rulesSlug,

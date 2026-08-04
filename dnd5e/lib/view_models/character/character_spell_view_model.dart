@@ -28,6 +28,10 @@ class CharacterSpellViewModel extends ChangeNotifier {
   final Map<int, List<String>> _selectedSpells = {};
   Map<int, List<String>> get selectedSpells => _selectedSpells;
 
+  final Set<String> _previouslyKnownSpellSlugs = {};
+  Set<String> get previouslyKnownSpellSlugs =>
+      Set.unmodifiable(_previouslyKnownSpellSlugs);
+
   // Hechizos concedidos por subclase. No consumen el límite y no se eliminan.
   final Map<int, List<String>> _automaticSpells = {};
   Map<int, List<String>> get automaticSpells => _automaticSpells;
@@ -387,6 +391,23 @@ class CharacterSpellViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void restoreSelections(Map<int, List<String>> selections) {
+    _selectedSpells
+      ..clear()
+      ..addAll({
+        for (final entry in selections.entries)
+          entry.key: List<String>.from(entry.value),
+      });
+
+    _previouslyKnownSpellSlugs
+      ..clear()
+      ..addAll(selections.values.expand((items) => items));
+    notifyListeners();
+  }
+
+  bool wasPreviouslyKnown(String slug) =>
+      _previouslyKnownSpellSlugs.contains(slug);
+
   bool isAutomaticSpell(String slug) =>
       _automaticSpells.values.any((slugs) => slugs.contains(slug));
 
@@ -438,6 +459,7 @@ class CharacterSpellViewModel extends ChangeNotifier {
 
   void reset() {
     _selectedSpells.clear();
+    _previouslyKnownSpellSlugs.clear();
     _automaticSpells.clear();
     _automaticSpellNames.clear();
     _automaticSpellsCountingAgainstLimit.clear();

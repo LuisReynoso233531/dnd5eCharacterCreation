@@ -177,10 +177,17 @@ class CharacterInventoryViewModel extends ChangeNotifier {
   String _treasuresText = '';
   String get treasuresText => _treasuresText;
 
+  String? _pendingArmorSlug;
+  String? _pendingShieldSlug;
+  Map<String, int> _pendingWeaponQuantities = {};
+  bool _hasPendingRestore = false;
+
   // ── Carga de datos ────────────────────────────────────────────────────────
 
   Future<void> loadAll() async {
     await Future.wait([loadArmors(), loadWeapons()]);
+    _applyPendingRestore();
+    notifyListeners();
   }
 
   Future<void> loadArmors() async {
@@ -450,6 +457,69 @@ String _modifierText(int modifier) {
     notifyListeners();
   }
 
+  void restoreSelections({
+    String? armorSlug,
+    String? shieldSlug,
+    Map<String, int> weaponQuantities = const {},
+    List<String> tools = const [],
+    Map<String, int> money = const {},
+    String treasuresText = '',
+  }) {
+    _pendingArmorSlug = armorSlug;
+    _pendingShieldSlug = shieldSlug;
+    _pendingWeaponQuantities = Map<String, int>.from(weaponQuantities);
+    _hasPendingRestore = true;
+
+    _tools
+      ..clear()
+      ..addAll(tools.where((tool) => tool.trim().isNotEmpty));
+    gp = money['gp'] ?? 0;
+    pp = money['pp'] ?? 0;
+    ep = money['ep'] ?? 0;
+    sp = money['sp'] ?? 0;
+    cp = money['cp'] ?? 0;
+    _treasuresText = treasuresText;
+
+    _applyPendingRestore();
+    notifyListeners();
+  }
+
+  void _applyPendingRestore() {
+    if (!_hasPendingRestore || _allArmors.isEmpty || _allWeapons.isEmpty) {
+      return;
+    }
+
+    ArmorModel? findArmor(String? slug) {
+      if (slug == null || slug.isEmpty) return null;
+      for (final armor in _allArmors) {
+        if (armor.slug == slug) return armor;
+      }
+      return null;
+    }
+
+    WeaponModel? findWeapon(String slug) {
+      for (final weapon in _allWeapons) {
+        if (weapon.slug == slug) return weapon;
+      }
+      return null;
+    }
+
+    _equippedArmor = findArmor(_pendingArmorSlug);
+    _equippedShield = findArmor(_pendingShieldSlug);
+    _weaponEntries.clear();
+
+    for (final entry in _pendingWeaponQuantities.entries) {
+      final weapon = findWeapon(entry.key);
+      if (weapon != null && entry.value > 0) {
+        _weaponEntries.add(
+          WeaponEntry(weapon: weapon, quantity: entry.value),
+        );
+      }
+    }
+
+    _hasPendingRestore = false;
+  }
+
   // ── Filtros para dropdowns ────────────────────────────────────────────────
 
   List<ArmorModel> get regularArmors => _allArmors
@@ -479,6 +549,10 @@ String _modifierText(int modifier) {
     gp = pp = ep = sp = cp = 0;
     _treasuresText = '';
     _backgroundEquipmentText = ''; // ← NUEVO
+    _pendingArmorSlug = null;
+    _pendingShieldSlug = null;
+    _pendingWeaponQuantities = {};
+    _hasPendingRestore = false;
     notifyListeners();
   }
 

@@ -28,7 +28,6 @@ class DetailClassView extends StatefulWidget {
 }
 
 class _DetailClassViewState extends State<DetailClassView> {
-
   List<String> _expertiseOptions(
     CreateCharacterViewModel vm,
     CharacterSubclassViewModel subclassVM,
@@ -103,11 +102,11 @@ class _DetailClassViewState extends State<DetailClassView> {
   void _goToSpells(BuildContext context) {
     if (!_validateExpertise(context)) return;
 
+    final vm = context.read<CreateCharacterViewModel>();
     final dvm = context.read<DetailClassViewModel>();
     final subVM = context.read<CharacterSubclassViewModel>();
 
-    if (subVM.requiresSpellTableChoice &&
-        subVM.selectedSpellTable == null) {
+    if (subVM.requiresSpellTableChoice && subVM.selectedSpellTable == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Choose the subclass spell list before continuing.'),
@@ -124,8 +123,16 @@ class _DetailClassViewState extends State<DetailClassView> {
             ChangeNotifierProvider.value(value: dvm),
             ChangeNotifierProvider.value(value: subVM),
             ChangeNotifierProvider(
-              create: (ctx) =>
-                  CharacterSpellViewModel(ctx.read<CharacterRepository>()),
+              create: (ctx) {
+                final spellVM = CharacterSpellViewModel(
+                  ctx.read<CharacterRepository>(),
+                );
+                final saved = vm.levelUpState;
+                if (vm.isLevelUp && saved != null) {
+                  spellVM.restoreSelections(saved.selectedSpells);
+                }
+                return spellVM;
+              },
             ),
           ],
           child: const CharacterSpellSelectionView(),
@@ -139,7 +146,7 @@ class _DetailClassViewState extends State<DetailClassView> {
     if (!_validateExpertise(context)) return;
 
     // Capturamos dvm y subclassVM ANTES de navegar — aún están en scope
-    final dvm   = context.read<DetailClassViewModel>();
+    final dvm = context.read<DetailClassViewModel>();
     final subVM = context.read<CharacterSubclassViewModel>();
 
     Navigator.push(
@@ -155,6 +162,17 @@ class _DetailClassViewState extends State<DetailClassView> {
                   ctx.read<CharacterRepository>(),
                 );
                 invVM.updateFromBackground(vm.selectedBackground);
+                final saved = vm.levelUpState;
+                if (vm.isLevelUp && saved != null) {
+                  invVM.restoreSelections(
+                    armorSlug: saved.equippedArmorSlug,
+                    shieldSlug: saved.equippedShieldSlug,
+                    weaponQuantities: saved.weaponQuantities,
+                    tools: saved.tools,
+                    money: saved.money,
+                    treasuresText: saved.treasuresText,
+                  );
+                }
                 return invVM;
               },
             ),
@@ -174,7 +192,7 @@ class _DetailClassViewState extends State<DetailClassView> {
 
     if (charClass == null) {
       return Scaffold(
-        appBar: _bar(),
+        appBar: _bar(vm),
         body: Center(
           child: Text(
             'Select a class first.',
@@ -218,12 +236,32 @@ class _DetailClassViewState extends State<DetailClassView> {
     final expertiseOptions = _expertiseOptions(vm, subclassVM);
 
     return Scaffold(
-      appBar: _bar(),
+      appBar: _bar(vm),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (vm.isLevelUp) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: context.dndColors.infoContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  'Level Up: ${vm.originalLevel} → ${vm.level}. '
+                  'Previous choices are preserved; complete only the new '
+                  'options unlocked at this level.',
+                  style: TextStyle(
+                    color: context.dndColors.onInfoContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             // ── Header ────────────────────────────────────────────────────
             classHeader(context, charClass, vm.level),
             const SizedBox(height: 24),
@@ -241,7 +279,13 @@ class _DetailClassViewState extends State<DetailClassView> {
               ],
             ),
             const SizedBox(height: 12),
-            buildHPSection(context, dvm, charClass.hit_dice, vm.level),
+            buildHPSection(
+              context,
+              dvm,
+              charClass.hit_dice,
+              vm.level,
+              lockedThroughLevel: vm.isLevelUp ? vm.originalLevel : null,
+            ),
             const Divider(height: 40, thickness: 1.2),
 
             // ── Fighting Style (solo si aplica) ───────────────────────────
@@ -264,6 +308,8 @@ class _DetailClassViewState extends State<DetailClassView> {
                 ...vm.skillVM.bgFixedSkills,
                 ...vm.skillVM.selectedClassSkills,
               ],
+              selectionLocked:
+                  vm.isLevelUp && vm.levelUpState?.selectedArchetype != null,
             ),
 
             if (expertiseCount > 0) ...[
@@ -316,8 +362,8 @@ class _DetailClassViewState extends State<DetailClassView> {
   }
 
   // ── AppBar ────────────────────────────────────────────────────────────────
-  AppBar _bar() => AppBar(
-    title: const Text('Class Details'),
+  AppBar _bar(CreateCharacterViewModel vm) => AppBar(
+    title: Text(vm.isLevelUp ? 'Level Up Details' : 'Class Details'),
   );
 
   // ── Botón de navegación reutilizable ──────────────────────────────────────

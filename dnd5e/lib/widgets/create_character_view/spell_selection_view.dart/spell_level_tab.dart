@@ -119,6 +119,7 @@ class SpellLevelTab extends StatelessWidget {
                 spell: spell,
                 isSelected: isSelected,
                 isAutomatic: isAutomatic,
+                wasPreviouslyKnown: spellVM.wasPreviouslyKnown(spell.slug),
                 canAdd: canAdd,
                 onTap: isAutomatic
                     ? null

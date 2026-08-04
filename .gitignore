@@ -8,6 +8,7 @@
 .history
 .env
 .zip
+.patch
 
 # Flutter repo-specific
 /bin/cache/

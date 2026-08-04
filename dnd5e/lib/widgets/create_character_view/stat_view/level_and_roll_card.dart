@@ -24,29 +24,44 @@ class LevelAndRollCard extends StatelessWidget {
                   'Character Level',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                DropdownButton<int>(
-                  value: vm.level,
-                  items: List.generate(20, (index) => index + 1)
-                      .map(
-                        (level) => DropdownMenuItem<int>(
-                          value: level,
-                          child: Text('Lvl $level'),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) vm.updateLevel(value);
-                  },
-                ),
+                if (vm.isLevelUp)
+                  Text(
+                    'Lvl ${vm.originalLevel} → Lvl ${vm.level}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  )
+                else
+                  DropdownButton<int>(
+                    value: vm.level,
+                    items: List.generate(20, (index) => index + 1)
+                        .map(
+                          (level) => DropdownMenuItem<int>(
+                            value: level,
+                            child: Text('Lvl $level'),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) vm.updateLevel(value);
+                    },
+                  ),
               ],
             ),
             const Divider(),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: () => StatsDialogs.showConfirmRoll(context, vm),
+                onPressed: vm.isLevelUp
+                    ? null
+                    : () => StatsDialogs.showConfirmRoll(context, vm),
                 icon: const Icon(Icons.casino),
-                label: const Text('Roll Random Stats (4d6 drop lowest)'),
+                label: Text(
+                  vm.isLevelUp
+                      ? 'Existing ability scores loaded'
+                      : 'Roll Random Stats (4d6 drop lowest)',
+                ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: context.colors.primary,
                   side: BorderSide(color: context.colors.primary),

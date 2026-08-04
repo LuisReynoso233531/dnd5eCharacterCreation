@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../utils/provider_extensions.dart';
+import '../../../utils/provider_extensions.dart';
 import '../../../views/create_character/charecter_sheet_view.dart';
 import '../../../view_models/character/character_inventory_view_model.dart';
 import '../../../view_models/character/character_detail_class_view_model.dart';

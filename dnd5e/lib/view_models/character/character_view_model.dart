@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import '../../data/models/character_class.dart';
+import '../../data/models/saved_character_state.dart';
 import '../../data/repositories/character_repository.dart';
 import '../../utils/tools.dart';
 import '../../utils/weapons.dart';
 import 'character_skill_view_model.dart';
 import 'character_equipment_view_model.dart';
 import 'character_language_view_model.dart';
+
+enum CharacterFlowMode { create, levelUp }
 
 class CreateCharacterViewModel extends ChangeNotifier {
   // ─── Dependencias ─────────────────────────────────────────────────────────
@@ -29,6 +32,18 @@ class CreateCharacterViewModel extends ChangeNotifier {
   String? _errorMessage;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+
+  CharacterFlowMode _flowMode = CharacterFlowMode.create;
+  SavedCharacterState? _levelUpState;
+  String? _editingCharacterId;
+  int _originalLevel = 0;
+
+  CharacterFlowMode get flowMode => _flowMode;
+  bool get isLevelUp => _flowMode == CharacterFlowMode.levelUp;
+  SavedCharacterState? get levelUpState => _levelUpState;
+  String? get editingCharacterId => _editingCharacterId;
+  int get originalLevel => _originalLevel;
+  int get targetLevel => _level;
 
   // ─── Datos (API) ──────────────────────────────────────────────────────────
   List<CharacterClass> _classes = [];
@@ -553,10 +568,22 @@ class CreateCharacterViewModel extends ChangeNotifier {
   }
 
   // ─── Feats ────────────────────────────────────────────────────────────────
-  bool doesLevelGiveImprovement(int l) => [4, 8, 12, 16, 19].contains(l);
+  List<int> get improvementLevels {
+    switch (_selectedClass?.slug.toLowerCase()) {
+      case 'fighter':
+        return const [4, 6, 8, 12, 14, 16, 19];
+      case 'rogue':
+        return const [4, 8, 10, 12, 16, 19];
+      default:
+        return const [4, 8, 12, 16, 19];
+    }
+  }
+
+  bool doesLevelGiveImprovement(int level) =>
+      improvementLevels.contains(level);
 
   List<int> get availableImprovementLevels =>
-      [4, 8, 12, 16, 19].where((l) => _level >= l).toList();
+      improvementLevels.where((level) => _level >= level).toList();
 
   bool get isLevelUpComplete => availableImprovementLevels.every(
     (lvl) => _levelUpChoices.containsKey(lvl),
@@ -605,6 +632,96 @@ class CreateCharacterViewModel extends ChangeNotifier {
     } finally {
       _setLoading(false);
     }
+  }
+
+  Future<void> beginLevelUp(SavedCharacterState state) async {
+    resetCreation();
+
+    _flowMode = CharacterFlowMode.levelUp;
+    _levelUpState = state;
+    _editingCharacterId = state.id;
+    _originalLevel = state.level;
+    _name = state.name;
+    _level = state.level >= 20 ? 20 : state.level + 1;
+
+    _selectedRace = Map<String, dynamic>.from(state.raceData);
+    _selectedClass = CharacterClass.fromJson(
+      Map<String, dynamic>.from(state.classData),
+    );
+    _selectedBackground = state.backgroundData.isEmpty
+        ? null
+        : Map<String, dynamic>.from(state.backgroundData);
+
+    baseStats = Map<String, int>.from(state.baseStats);
+    _levelUpChoices = {
+      for (final entry in state.levelUpChoices.entries)
+        entry.key: Map<String, dynamic>.from(entry.value),
+    };
+    _featChoices = {
+      for (final entry in state.featChoices.entries)
+        entry.key: ResolvedFeatChoice(
+          chosenStat: entry.value.chosenStat,
+          proficiencies: List<String>.from(entry.value.proficiencies),
+          languages: List<String>.from(entry.value.languages),
+        ),
+    };
+
+    _selectedDwarvenToolProficiency =
+        state.selectedDwarvenToolProficiency;
+    _selectedDraconicAncestry = state.selectedDraconicAncestry == null
+        ? null
+        : Map<String, String>.from(state.selectedDraconicAncestry!);
+
+    _racialBonuses.clear();
+    for (final bonus in (_selectedRace?['asi'] as List<dynamic>? ?? const [])) {
+      if (bonus is! Map) continue;
+      final attributes = bonus['attributes'];
+      if (attributes is! List || attributes.isEmpty) continue;
+      final attribute = attributes.first.toString();
+      final value = bonus['value'];
+      final amount = value is num
+          ? value.toInt()
+          : int.tryParse(value?.toString() ?? '') ?? 0;
+      _racialBonuses[attribute] =
+          (_racialBonuses[attribute] ?? 0) + amount;
+    }
+
+    final speedData = _selectedRace?['speed'];
+    _speed = speedData is Map
+        ? ((speedData['walk'] as num?)?.toInt() ?? 30)
+        : 30;
+
+    equipmentVM.updateFromClass(_selectedClass);
+    equipmentVM.updateFromBackground(_selectedBackground);
+    equipmentVM.setPackageIndex(state.selectedEquipmentPackageIndex);
+
+    skillVM.updateFromSelections(
+      background: _selectedBackground,
+      charClass: _selectedClass,
+    );
+    skillVM.restoreSelections(
+      classSkills: state.selectedClassSkills,
+      expertise: state.selectedExpertise,
+    );
+
+    languageVM.updateFromRace(_selectedRace);
+    languageVM.updateFromBackground(_selectedBackground);
+    languageVM.restoreSelections(
+      racialLanguages: state.selectedRacialLanguages,
+      backgroundLanguages: state.selectedBackgroundLanguages,
+      featLanguages: state.selectedFeatLanguages,
+    );
+
+    _syncFeatLanguagesToLanguageVM();
+    _calculateMaxHp();
+    notifyListeners();
+  }
+
+  void markProgressionSaved(SavedCharacterState state) {
+    _editingCharacterId = state.id;
+    _levelUpState = state;
+    _originalLevel = state.level;
+    notifyListeners();
   }
 
   // ─── Fetch ────────────────────────────────────────────────────────────────
@@ -702,6 +819,10 @@ class CreateCharacterViewModel extends ChangeNotifier {
 
   // ─── Reset ────────────────────────────────────────────────────────────────
   void resetCreation() {
+    _flowMode = CharacterFlowMode.create;
+    _levelUpState = null;
+    _editingCharacterId = null;
+    _originalLevel = 0;
     _name = '';
     _level = 1;
     _selectedRace = _selectedClass = _selectedBackground = null;
@@ -719,11 +840,12 @@ class CreateCharacterViewModel extends ChangeNotifier {
     _maxHp = 0;
     _speed = 30;
     _selectedDwarvenToolProficiency = null;
+    _selectedDraconicAncestry = null;
 
     skillVM.reset();
     equipmentVM.reset();
     languageVM.reset();
-     _syncFeatLanguagesToLanguageVM();
+    _syncFeatLanguagesToLanguageVM();
     notifyListeners();
   }
 
